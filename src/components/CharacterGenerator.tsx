@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Character, Race, Background, Subclass, ClassType } from '../types';
 import { RACES } from '../data/racesAndBackgrounds';
-import { BACKGROUNDS } from '../data/racesAndBackgrounds';
+import { BACKGROUNDS } from '../data/backgrounds';
 import { CLASSES } from '../data/classes';
 import { getSpellsForClass } from '../data/spells';
 import { calculateAbilityModifier } from '../utils/calculations';

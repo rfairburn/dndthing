@@ -95,6 +95,9 @@ export type Background =
 export interface BackgroundData {
   name: string;
   description: string;
+  source?: string;
+  abilityScores?: string[];
+  feat?: string;
   skillProficiencies: string[];
   toolProficiencies?: string[];
   equipment: string[];

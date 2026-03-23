@@ -561,42 +561,100 @@ async function scrapeBackgroundPage(browser: puppeteer.Browser, backgroundName: 
     
     await page.setContent(html, { waitUntil: 'domcontentloaded' });
     
-    const backgroundData = await page.evaluate((backgroundParam: string) => {
+const backgroundData = await page.evaluate((backgroundParam: string) => {
       const titleSpan = document.querySelector('.page-title.page-header span');
       const friendlyName = titleSpan?.textContent?.trim() || backgroundParam;
       
-      const paragraphTexts = Array.from(document.querySelectorAll('.main-content p')).map(p => p.textContent?.trim() || '');
+      // Get all paragraphs, splitting by <br> tags to separate fields on same line
+      const rawParagraphs = Array.from(document.querySelectorAll('.main-content p'));
+      const textLines: string[] = [];
       
-      if (paragraphTexts.length < 2) {
+      for (const para of rawParagraphs) {
+        // Split paragraph by <br> tags into separate lines
+        const htmlContent = para.innerHTML;
+        const lines = htmlContent.split(/<br\s*\/?>/i);
+        
+        for (const line of lines) {
+          // Convert HTML entities and extract text content
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = line;
+          const text = tempDiv.textContent?.trim() || '';
+          if (text) {
+            textLines.push(text);
+          }
+        }
+      }
+      
+      if (textLines.length === 0) {
         return null;
       }
       
-      let descriptionStartIndex = 0;
-      for (let i = 0; i < paragraphTexts.length; i++) {
-        const para = paragraphTexts[i];
-        if (!para.startsWith('Source:') && !para.includes('[Home]') && !para.includes('»')) {
-          descriptionStartIndex = i;
-          break;
+      let source: string | undefined;
+      let abilityScores: string[] = [];
+      let feat: string | undefined;
+      const skillProficiencies: string[] = [];
+      const toolProficiencies: string[] = [];
+      let equipmentText: string | undefined;
+      const descriptionParts: string[] = [];
+      
+      for (const text of textLines) {
+        // Skip source line
+        if (text.startsWith('Source:')) {
+          source = text.replace('Source:', '').trim();
+          continue;
+        }
+        
+        // Skip navigation links
+        if (text.includes('[Home]') || text.includes('»')) {
+          continue;
+        }
+        
+        // Split on first colon to get key/value
+        const colonIndex = text.indexOf(':');
+        if (colonIndex !== -1) {
+          const label = text.substring(0, colonIndex).trim().toLowerCase();
+          
+          // Only treat as field if label matches known field names
+          const knownLabels = ['ability scores', 'feat', 'skill proficiencies', 'tool proficiency', 
+                               'tool proficiencies', 'equipment'];
+          
+          if (knownLabels.includes(label)) {
+            const value = text.substring(colonIndex + 1).trim();
+            
+            if (label === 'ability scores') {
+              abilityScores = value.split(/,\s*/).filter(s => s.trim());
+            } else if (label === 'feat') {
+              feat = value;
+            } else if (label === 'skill proficiencies') {
+              skillProficiencies.push(...value.split(/ and |,/).map(s => s.trim()).filter(Boolean));
+            } else if (label === 'tool proficiency' || label === 'tool proficiencies') {
+              if (value !== 'Choose one kind of') {
+                toolProficiencies.push(value);
+              }
+            } else if (label === 'equipment') {
+              equipmentText = value;
+            }
+          } else {
+            // Not a known field label, treat as description
+            descriptionParts.push(text);
+          }
+        } else if (text) {
+          // No colon means it's part of the main description
+          descriptionParts.push(text);
         }
       }
       
-      let description = '';
-      for (let i = descriptionStartIndex; i < paragraphTexts.length; i++) {
-        const para = paragraphTexts[i];
-        if (para && !para.startsWith('Source:') && !para.includes('[Home]') && !para.includes('»')) {
-          description += para + '\n\n';
-        }
-      }
-      
-      description = description.trim();
-      
-      const sourceMatch = paragraphTexts.find(p => p.startsWith('Source:'));
-      const source = sourceMatch ? sourceMatch.replace('Source:', '').trim() : undefined;
+      const description = descriptionParts.join('\n\n').trim();
       
       return {
         name: friendlyName,
-        description: description || undefined,
-        source: source || undefined
+        source: source || undefined,
+        abilityScores: abilityScores.length > 0 ? abilityScores : undefined,
+        feat: feat || undefined,
+        skillProficiencies: skillProficiencies.length > 0 ? skillProficiencies : undefined,
+        toolProficiency: toolProficiencies.length > 0 ? toolProficiencies : undefined,
+        equipment: equipmentText || undefined,
+        description: description || undefined
       };
     }, backgroundName);
     

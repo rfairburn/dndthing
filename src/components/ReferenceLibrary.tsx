@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { ClassType } from '../types';
 import { SPELLS_BY_CLASS } from '../data/spells';
 import { FEATS } from '../data/feats';
-import { BACKGROUNDS } from '../data/racesAndBackgrounds';
+import { BACKGROUNDS } from '../data/backgrounds';
 
 const CLASS_LABELS: Record<string, string> = {
   artificer: "Artificer",

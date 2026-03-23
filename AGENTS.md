@@ -85,7 +85,7 @@ npx tsx scripts/scrape-dnd2024.ts --types all
 npx tsx scripts/scrape-dnd2024.ts --types "spells,subclasses"
 
 # Targeted scrape with error recovery
-npx tsx scripts/scrape-dnd2024.ts --type spells --items fireball,magic-missile --continue-on-error
+npx tsx scripts/scrape-dnd2024.ts --types spells --items fireball,magic-missile --continue-on-error
 ```
 
 ---
