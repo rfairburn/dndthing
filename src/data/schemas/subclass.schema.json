@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Subclass",
+  "description": "D&D 2024 subclass entry from wikidot.com",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Friendly name of the subclass (e.g., 'Order of Scribes')",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "description": "Full description text of the subclass feature"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source book (e.g., 'Player's Handbook')"
+    }
+  },
+  "examples": [
+    {
+      "name": "Order of Scribes",
+      "description": "Wizards who dedicate themselves to the study and mastery of their spellbook as a tool of magic. Their spellbook becomes an extension of their being, allowing them to manifest spells from anywhere and even create magical minions.",
+      "source": "Player's Handbook"
+    },
+    {
+      "name": "Bladesinging",
+      "description": "Wizards who blend martial prowess with arcane magic, fighting with weapons while casting spells. They move with grace and speed, using their weapon as a conduit for their magical abilities.",
+      "source": "Player's Handbook"
+    }
+  ]
+}

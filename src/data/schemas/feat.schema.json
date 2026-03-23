@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Feat",
+  "description": "D&D 2024 feat entry from wikidot.com",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Friendly name of the feat (e.g., 'Alert')",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "description": "Full description text of the feat benefits"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source book (e.g., 'Player's Handbook')"
+    }
+  },
+  "examples": [
+    {
+      "name": "Alert",
+      "description": "You gain the following benefits.\n\n**Initiative Proficiency.** When you roll Initiative, you can add your Proficiency Bonus to the roll.\n\n**Initiative Swap.** Immediately after you roll Initiative, you can swap your Initiative with the Initiative of one willing ally in the same combat. You can't make this swap if you or the ally has the Incapacitated condition.",
+      "source": "Player's Handbook"
+    },
+    {
+      "name": "Crusher",
+      "description": "You gain the following benefits.\n\n**Big and Bulky.** When you hit a creature with an attack using Strength, you can force it to fall prone if it is no more than one size larger than you. You also have advantage on grapple checks against that creature.\n\n**Impose Advantage.** Once per turn when you hit a creature with an attack roll, you can impose disadvantage on the next attack roll made against you before your next turn.",
+      "source": "Player's Handbook"
+    }
+  ]
+}

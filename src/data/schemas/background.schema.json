@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Background",
+  "description": "D&D 2024 background entry from wikidot.com",
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Friendly name of the background (e.g., 'Acolyte')",
+      "minLength": 1
+    },
+    "description": {
+      "type": "string",
+      "description": "Full description text including ability scores, feat, skills, tools, and equipment"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source book (e.g., 'Player's Handbook')"
+    }
+  },
+  "examples": [
+    {
+      "name": "Acolyte",
+      "description": "You devoted yourself to service in a temple, either nestled in a town or secluded in a sacred grove. There you performed rites in honor of a god or pantheon.\n\n**Ability Scores:** Intelligence, Wisdom, Charisma\n**Feat:** Magic Initiate (Cleric)\n**Skill Proficiencies:** Insight and Religion\n**Tool Proficiency:** Calligrapher's Supplies\n**Equipment:** Choose A or B: (A) Calligrapher's Supplies, Book (prayers), Holy Symbol, Parchment (10 sheets), Robe, 8 GP; or (B) 50 GP",
+      "source": "Player's Handbook"
+    }
+  ]
+}
