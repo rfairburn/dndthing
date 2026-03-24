@@ -10,6 +10,11 @@ React + TypeScript character generator for Dungeons & Dragons 2024 SRD with Wiza
 
 ## Key Implementation Rules
 
+### Character Creation Flow (Official 2024 SRD)
+1. **Species** → Base traits, size, speed
+2. **Background** → +3 stat points (+2/+1 or +1/+1/+1 to listed abilities), feat, proficiencies, equipment
+3. **Ability Scores** → Assign base scores (Standard Array/Point Buy 27 pts) THEN apply background bonuses
+
 ### Wizard Spellcasting (Official 2024 SRD)
 1. **Cantrips**: Know three Wizard cantrips separately - NOT in spellbook (+1 at levels 4 and 10)
 2. **Spellbook**: Contains ONLY level 1+ spells, starts with exactly 6 level 1 spells, gains +2 per wizard level after 1st (`6 + (level-1)*2`)
@@ -34,25 +39,29 @@ Before adding/modifying any spell:
 ## File Structure
 ```
 src/
-├── types/index.ts              # TypeScript interfaces and type definitions
+├── types/index.ts              # TypeScript interfaces and type definitions (Species, Background, etc.)
 ├── data/
 │   ├── schemas/                # JSON Schema validation files
+│   │   └── species.schema.json # Species validation schema
 │   ├── spells.json             # 411 official D&D 2024 SRD spells (scraped)
 │   ├── spells.ts               # Transformer: creates SPELLS_BY_CLASS mapping
 │   ├── subclasses.json         # 61 subclasses (scraped)
 │   ├── subclasses.ts           # Transformer: maps friendly names to data
-│   ├── feats.ts                # Core 30 hardcoded feats with benefits/prerequisites
-│   └── racesAndBackgrounds.ts  # Races + 12 formatted backgrounds
+│   ├── species.json            # 21 scraped species entries with traits/size/speed
+│   ├── species.ts              # Transformer: loads SPECIES record from scraped data
+│   ├── backgrounds.json        # 56 backgrounds (complete)
+│   ├── backgrounds.ts          # Background transformer with abilityScores/feat/proficiencies
+│   └── feats.ts                # Core 30 hardcoded feats with benefits/prerequisites
 ├── components/
-│   ├── CharacterGenerator.tsx  # Main character creation wizard
-│   ├── ReferenceLibrary.tsx    # Searchable reference viewer
+│   ├── CharacterGenerator.tsx  # Main character creation wizard (species → background → ability scores)
+│   ├── ReferenceLibrary.tsx    # Searchable reference viewer (spells, species, backgrounds)
 │   └── InventoryManager.tsx    # Equipment management
 └── App.tsx                     # Navigation between views
 
 scripts/
-├── scrape-dnd2024.ts           # Web scraper (spells, subclasses, feats, backgrounds)
+├── scrape-dnd2024.ts           # Web scraper (spells, subclasses, feats, backgrounds, species)
 ├── cache-manager.ts            # HTML caching utilities
-├── validate-output.ts          # JSON Schema validation script
+├── validate-output.ts          # JSON Schema validation script (supports species)
 └── test-scrape.ts              # Debug tool for individual items
 ```
 

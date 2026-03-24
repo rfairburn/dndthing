@@ -78,7 +78,7 @@ const SUBCLASS_NAMES: Record<Subclass, string> = {
   "wizard_school_of_illusion": "School of Illusion"
 };
 
-type Step = 'name' | 'species' | 'ability_scores' | 'class' | 'subclass' | 'spells' | 'background' | 'inventory' | 'review';
+type Step = 'name' | 'species' | 'background' | 'ability_scores' | 'class' | 'subclass' | 'spells' | 'inventory' | 'review';
 
 const standardArray = [15, 14, 13, 12, 10, 8];
 const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as const;
@@ -100,6 +100,15 @@ export default function CharacterGenerator() {
     { ability: 'wisdom', value: 10 },
     { ability: 'charisma', value: 8 }
   ]);
+
+  const [backgroundBonuses, setBackgroundBonuses] = useState<Record<typeof abilities[number], number>>({
+    strength: 0,
+    dexterity: 0,
+    constitution: 0,
+    intelligence: 0,
+    wisdom: 0,
+    charisma: 0
+  });
 
   const getAbilityScoresFromSlots = (): Record<typeof abilities[number], number> => {
     return slots.reduce((acc, slot) => {
@@ -228,6 +237,17 @@ export default function CharacterGenerator() {
 
   const handleBackgroundSelect = (backgroundKey: Background) => {
     const backgroundData = BACKGROUNDS[backgroundKey];
+    
+    // Reset background bonuses when selecting new background
+    setBackgroundBonuses({
+      strength: 0,
+      dexterity: 0,
+      constitution: 0,
+      intelligence: 0,
+      wisdom: 0,
+      charisma: 0
+    });
+    
     setCharacter(prev => ({
       ...prev,
       background: backgroundKey,
@@ -240,6 +260,40 @@ export default function CharacterGenerator() {
         { name: backgroundData.feature.name, description: backgroundData.feature.description, source: "background" as const }
       ]
     }));
+  };
+
+  const incrementBackgroundBonus = (ability: typeof abilities[number]) => {
+    setBackgroundBonuses(prev => {
+      const currentTotal = Object.values(prev).reduce((sum, val) => sum + val, 0);
+      
+      // Check if this ability is already at max (+2)
+      if (prev[ability] >= 2) {
+        return prev;
+      }
+      
+      // Check if we've reached total max (+3)
+      if (currentTotal >= 3) {
+        return prev;
+      }
+      
+      return {
+        ...prev,
+        [ability]: prev[ability] + 1
+      };
+    });
+  };
+
+  const decrementBackgroundBonus = (ability: typeof abilities[number]) => {
+    setBackgroundBonuses(prev => {
+      if (prev[ability] <= 0) {
+        return prev;
+      }
+      
+      return {
+        ...prev,
+        [ability]: prev[ability] - 1
+      };
+    });
   };
 
 const handleLevelChange = (level: number) => {
@@ -312,7 +366,7 @@ const handleLevelChange = (level: number) => {
   };
 
   const nextStep = () => {
-    const steps: Step[] = ['name', 'species', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
+    const steps: Step[] = ['name', 'species', 'background', 'ability_scores', 'class', 'subclass', 'spells', 'inventory', 'review'];
     const currentIndex = steps.indexOf(step);
     if (currentIndex < steps.length - 1) {
       setStep(steps[currentIndex + 1]);
@@ -320,7 +374,7 @@ const handleLevelChange = (level: number) => {
   };
 
   const prevStep = () => {
-    const steps: Step[] = ['name', 'species', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
+    const steps: Step[] = ['name', 'species', 'background', 'ability_scores', 'class', 'subclass', 'spells', 'inventory', 'review'];
     const currentIndex = steps.indexOf(step);
     if (currentIndex > 0) {
       setStep(steps[currentIndex - 1]);
@@ -374,15 +428,66 @@ const handleLevelChange = (level: number) => {
   );
 
 const renderAbilityScoresStep = () => {
+  const selectedBackgroundData = BACKGROUNDS[character.background];
+  const abilityScoresList = (selectedBackgroundData.abilityScores || []).map(a => a.toLowerCase());
+  const hasBackgroundBonuses = abilityScoresList.length > 0;
+  const totalBonusApplied = Object.values(backgroundBonuses).reduce((sum, val) => sum + val, 0);
+
   return (
     <div className="max-w-4xl mx-auto">
       <h2 className="text-3xl font-bold mb-6 text-purple-400">Assign Ability Scores</h2>
+      
+      {hasBackgroundBonuses && (
+        <div className="mb-8 p-6 bg-yellow-900/30 rounded-lg border-2 border-yellow-600">
+          <h3 className="text-xl font-bold mb-4 text-yellow-400">Background Stat Bonuses</h3>
+          <p className="text-gray-300 mb-4">Your {selectedBackgroundData.name} background gives you +3 total stat points. Use the counters below to distribute them (max +2 per ability, max +3 total):</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {abilityScoresList.map(ability => {
+              const currentBonus = backgroundBonuses[ability as typeof abilities[number]] || 0;
+              
+              return (
+                <div key={ability} className="p-4 bg-gray-800 rounded-lg">
+                  <div className="text-sm capitalize text-gray-400 mb-2">{ability}</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => decrementBackgroundBonus(ability as typeof abilities[number])}
+                      disabled={currentBonus <= 0}
+                      className="w-10 h-10 rounded-lg bg-gray-700 hover:bg-gray-600 font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      -
+                    </button>
+                    <div className={`text-2xl font-bold px-4 py-1 rounded ${currentBonus > 0 ? 'bg-yellow-700 text-white' : 'bg-gray-700'}`}>
+                      {currentBonus > 0 ? `+${currentBonus}` : '+0'}
+                    </div>
+                    <button
+                      onClick={() => incrementBackgroundBonus(ability as typeof abilities[number])}
+                      disabled={currentBonus >= 2 || totalBonusApplied >= 3}
+                      className="w-10 h-10 rounded-lg bg-gray-700 hover:bg-gray-600 font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 text-center">
+            <span className="text-sm text-gray-400">Total bonuses applied: </span>
+            <span className={`font-bold ${totalBonusApplied === 3 ? 'text-green-400' : 'text-yellow-400'}`}>+{totalBonusApplied}/+3</span>
+          </div>
+        </div>
+      )}
+
       <p className="text-gray-400 mb-8">Click a value to assign it. Each value can only be used once.</p>
 
       {/* Ability Score Slots */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {slots.map((slot, index) => {
           const baseValue = slot.value || 0;
+          const bonusValue = backgroundBonuses[slot.ability] || 0;
+          const totalValue = baseValue + bonusValue;
           
           return (
             <div key={slot.ability} className="p-6 bg-gray-800 rounded-lg border-2 border-purple-600">
@@ -392,9 +497,16 @@ const renderAbilityScoresStep = () => {
               <div className="mb-4 p-4 bg-gray-700 rounded-lg text-center">
                 {baseValue !== 0 ? (
                   <>
-                    <div className="text-sm text-gray-400 mb-1">Total Score</div>
+                    <div className="text-sm text-gray-400 mb-1">Base Score</div>
                     <div className="flex items-center justify-center gap-2">
                       <span className="text-3xl font-bold">{baseValue}</span>
+                      {bonusValue > 0 && (
+                        <>
+                          <span className="text-yellow-400 text-xl">+{bonusValue}</span>
+                          <span className="text-gray-500">=</span>
+                          <span className="text-green-400 text-3xl font-bold">{totalValue}</span>
+                        </>
+                      )}
                     </div>
                   </>
                 ) : (
@@ -427,7 +539,7 @@ const renderAbilityScoresStep = () => {
                 {baseValue !== 0 ? (
                   <>
                     <span className="text-sm text-gray-400">Modifier: </span>
-                    <span className="text-xl font-bold text-purple-400">+{calculateAbilityModifier(baseValue)}</span>
+                    <span className="text-xl font-bold text-purple-400">+{calculateAbilityModifier(totalValue)}</span>
                   </>
                 ) : (
                   <span className="text-sm text-gray-500">No value assigned</span>
@@ -445,14 +557,24 @@ const renderAbilityScoresStep = () => {
           {abilities.map((ability) => {
             const slot = slots.find(s => s.ability === ability);
             const baseValue = slot?.value || 0;
+            const bonusValue = backgroundBonuses[ability] || 0;
+            const totalValue = baseValue + bonusValue;
             
             return (
               <div key={ability} className="p-3 bg-gray-800 rounded text-center">
                 <div className="text-xs capitalize text-gray-400 mb-1">{ability}</div>
                 {slot && slot.value !== null ? (
                   <>
-                    <div className="text-xl font-bold">{baseValue}</div>
-                    <div className="text-sm text-purple-400">+{calculateAbilityModifier(baseValue)}</div>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-lg font-bold">{baseValue}</span>
+                      {bonusValue > 0 && (
+                        <>
+                          <span className="text-yellow-400 text-sm">+{bonusValue}</span>
+                          <span className="text-green-400 text-xl font-bold">= {totalValue}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="text-sm text-purple-400">+{calculateAbilityModifier(totalValue)}</div>
                   </>
                 ) : (
                   <div className="text-gray-500">Unassigned</div>
