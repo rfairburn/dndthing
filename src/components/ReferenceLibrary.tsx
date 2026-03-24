@@ -1,9 +1,50 @@
 import { useState } from 'react';
-import type { ClassType } from '../types';
+import type { ClassType, Feat } from '../types';
 import { SPELLS_BY_CLASS } from '../data/spells';
-import { FEATS } from '../data/feats';
+import featsData from '../data/feats.json';
 import { BACKGROUNDS } from '../data/backgrounds';
 import { SPECIES } from '../data/species';
+
+// Parse scraped feat data to extract benefits from description text
+const parseFeatDescription = (description: string): { mainText: string; benefits: string[] } => {
+  const lines = description.split('\n').filter(line => line.trim());
+  
+  // Look for "You gain the following benefits" marker
+  const benefitsStartIndex = lines.findIndex(line => 
+    line.includes('gain the following benefits') || 
+    line.includes('following benefits')
+  );
+  
+  if (benefitsStartIndex > -1) {
+    const mainText = lines.slice(0, benefitsStartIndex + 1).join('\n');
+    const benefitLines = lines.slice(benefitsStartIndex + 1);
+    
+    // Parse each benefit line: "Benefit Name. Description" format
+    const benefits = benefitLines.map(line => {
+      const match = line.match(/^([A-Z][^.]+)\.\s*(.*)$/);
+      return match ? `${match[1]}. ${match[2]}` : line;
+    });
+    
+    return { mainText, benefits };
+  }
+  
+  // No benefits marker - treat entire description as main text with no structured benefits
+  return { mainText: description, benefits: [] };
+};
+
+const FEATS: Record<string, Feat> = Object.entries(featsData).reduce((acc, [key, feat]) => {
+  const nameKey = key.toLowerCase().replace(/\s+/g, '_');
+  const parsed = parseFeatDescription(feat.description);
+  
+  acc[nameKey] = {
+    name: feat.name,
+    description: parsed.mainText,
+    benefits: parsed.benefits.length > 0 ? parsed.benefits : [parsed.mainText],
+    source: feat.source
+  };
+  
+  return acc;
+}, {} as Record<string, Feat>);
 
 const CLASS_LABELS: Record<string, string> = {
   artificer: "Artificer",
@@ -212,20 +253,31 @@ export default function ReferenceLibrary() {
             {filteredFeats.map(([key, feat]) => (
               <div key={key} className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-all">
                 <h3 className="text-xl font-bold mb-2">{feat.name}</h3>
-                {feat.prerequisites && (
-                  <p className="text-yellow-400 text-sm mb-3">
-                    Prerequisites: {feat.prerequisites.map(p => `${p.abilityScore} ${p.minimum}`).join(', ')}
-                  </p>
+                {feat.source && (
+                  <p className="text-purple-400 text-xs mb-3">Source: {feat.source}</p>
                 )}
-                <p className="text-gray-400 text-sm mb-4">{feat.description}</p>
-                <ul className="space-y-2">
-                  {feat.benefits.map((benefit, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="text-green-500 mt-1">✓</span>
-                      <span className="text-gray-300 text-sm">{benefit}</span>
-                    </li>
-                  ))}
-                </ul>
+                {feat.prerequisites && feat.prerequisites.length > 0 && (
+                  <div className="mb-3">
+                    <h4 className="font-semibold mb-1 text-yellow-400 text-sm">Prerequisites</h4>
+                    <p className="text-gray-300 text-sm">{feat.prerequisites.map(p => `${p.abilityScore} ${p.minimum}`).join(', ')}</p>
+                  </div>
+                )}
+                {feat.description && !feat.benefits.some(b => b.includes(feat.description)) && (
+                  <p className="text-gray-400 text-sm mb-4">{feat.description}</p>
+                )}
+                {feat.benefits.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-semibold mb-1 text-green-400 text-sm">Benefits</h4>
+                    <ul className="space-y-1.5">
+                      {feat.benefits.map((benefit, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-green-500 mt-0.5 text-xs">•</span>
+                          <span className="text-gray-300 text-sm">{benefit}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             ))}
           </div>

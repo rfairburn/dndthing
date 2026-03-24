@@ -375,6 +375,7 @@ export interface Feat {
   description: string;
   prerequisites?: Prerequisite[];
   benefits: string[];
+  source?: string;
 }
 
 export interface Prerequisite {
