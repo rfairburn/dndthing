@@ -1274,14 +1274,14 @@ const getPreparedSpellLimit = () => {
   );
 };
 
-  const stepNames: Step[] = ['name', 'species', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
+  const stepNames: Step[] = ['name', 'species', 'background', 'ability_scores', 'class', 'subclass', 'spells', 'inventory', 'review'];
 
   return (
     <div className="max-w-6xl mx-auto">
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between mb-2">
-          {['Name', 'Species', 'Abilities', 'Class', 'Subclass', 'Spells', 'Background', 'Inventory', 'Review'].map((label, idx) => {
+          {['Name', 'Species', 'Background', 'Abilities', 'Class', 'Subclass', 'Spells', 'Inventory', 'Review'].map((label, idx) => {
             const currentStepIndex = stepNames.indexOf(step);
             const clickedStepIndex = idx;
             const isCompleted = clickedStepIndex <= currentStepIndex;
