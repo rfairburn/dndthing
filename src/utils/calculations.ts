@@ -36,13 +36,13 @@ export const rollAbilityScores = (): AbilityScores => {
   };
 };
 
-export const createCharacter = (name: string, race: any, background: any): Character => {
+export const createCharacter = (name: string, species: any, background: any): Character => {
   const abilityScores = generateAbilityScores();
   
   return {
     id: Date.now().toString(),
     name,
-    race: "human" as any,
+    species: "human" as any,
     background: "acolyte" as any,
     classData: { class: "fighter" },
     level: 1,
@@ -50,7 +50,7 @@ export const createCharacter = (name: string, race: any, background: any): Chara
     abilityScores,
     proficiencyBonus: 2,
     ac: 10 + calculateAbilityModifier(abilityScores.dexterity),
-    speed: race.speed || 30,
+    speed: species.speed || 30,
     hitPoints: {
       current: 10,
       max: 10,
@@ -67,8 +67,8 @@ export const createCharacter = (name: string, race: any, background: any): Chara
     armorProficiencies: [],
     weaponProficiencies: [],
     toolProficiencies: [],
-    languages: [...(race.languages || ["Common"])],
-    traits: race.traits || [],
+    languages: ["Common"],
+    traits: species.traits || [],
     featuresAndClasses: [
       { name: background.feature.name, description: background.feature.description, source: "background" as const }
     ],

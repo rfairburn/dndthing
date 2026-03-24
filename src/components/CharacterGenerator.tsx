@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import type { Character, Race, Background, Subclass, ClassType } from '../types';
-import { RACES } from '../data/racesAndBackgrounds';
+import type { Character, Species, Background, Subclass, ClassType } from '../types';
+import { SPECIES } from '../data/species';
 import { BACKGROUNDS } from '../data/backgrounds';
 import { CLASSES } from '../data/classes';
 import { getSpellsForClass } from '../data/spells';
@@ -78,7 +78,7 @@ const SUBCLASS_NAMES: Record<Subclass, string> = {
   "wizard_school_of_illusion": "School of Illusion"
 };
 
-type Step = 'name' | 'race' | 'ability_scores' | 'class' | 'subclass' | 'spells' | 'background' | 'inventory' | 'review';
+type Step = 'name' | 'species' | 'ability_scores' | 'class' | 'subclass' | 'spells' | 'background' | 'inventory' | 'review';
 
 const standardArray = [15, 14, 13, 12, 10, 8];
 const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as const;
@@ -114,7 +114,7 @@ export default function CharacterGenerator() {
     id: '',
     name: '',
     playerName: '',
-    race: "human" as Race,
+    species: "human" as Species,
     background: "acolyte" as Background,
     classData: { class: "fighter" },
     level: 1,
@@ -151,14 +151,13 @@ export default function CharacterGenerator() {
     setCharacter(prev => ({ ...prev, name }));
   };
 
-  const handleRaceSelect = (raceKey: Race) => {
-    const raceData = RACES[raceKey];
+  const handleSpeciesSelect = (speciesKey: Species) => {
+    const speciesData = SPECIES[speciesKey];
     setCharacter(prev => ({
       ...prev,
-      race: raceKey,
-      speed: raceData.speed,
-      languages: [...(raceData.languages || ["Common"])],
-      traits: raceData.traits || []
+      species: speciesKey,
+      speed: speciesData.speed,
+      traits: speciesData.traits || []
     }));
   };
 
@@ -313,7 +312,7 @@ const handleLevelChange = (level: number) => {
   };
 
   const nextStep = () => {
-    const steps: Step[] = ['name', 'race', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
+    const steps: Step[] = ['name', 'species', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
     const currentIndex = steps.indexOf(step);
     if (currentIndex < steps.length - 1) {
       setStep(steps[currentIndex + 1]);
@@ -321,7 +320,7 @@ const handleLevelChange = (level: number) => {
   };
 
   const prevStep = () => {
-    const steps: Step[] = ['name', 'race', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
+    const steps: Step[] = ['name', 'species', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
     const currentIndex = steps.indexOf(step);
     if (currentIndex > 0) {
       setStep(steps[currentIndex - 1]);
@@ -348,28 +347,25 @@ const handleLevelChange = (level: number) => {
     </div>
   );
 
-  const renderRaceStep = () => (
+  const renderSpeciesStep = () => (
     <div className="max-w-4xl mx-auto">
-      <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Race</h2>
+      <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Species</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(RACES).map(([key, race]) => (
+        {Object.entries(SPECIES).map(([key, species]) => (
           <button
             key={key}
-            onClick={() => handleRaceSelect(key as Race)}
+            onClick={() => handleSpeciesSelect(key as Species)}
             className={`p-6 rounded-lg border-2 transition-all text-left ${
-              character.race === key
+              character.species === key
                 ? 'border-purple-500 bg-purple-900/30'
                 : 'border-gray-700 hover:border-purple-500 bg-gray-800'
             }`}
           >
-            <h3 className="text-xl font-bold mb-2">{race.name}</h3>
-            <p className="text-gray-400 text-sm mb-3">{race.description}</p>
+            <h3 className="text-xl font-bold mb-2">{species.name}</h3>
+            <p className="text-gray-400 text-sm mb-3 line-clamp-2">{species.description}</p>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(race.abilityScoreIncrease || {}).map(([stat, val]) => (
-                <span key={stat} className="px-2 py-1 bg-purple-700 rounded text-xs">
-                  +{val as number} {stat.charAt(0).toUpperCase() + stat.slice(1)}
-                </span>
-              ))}
+              <span className="px-2 py-1 bg-purple-700 rounded text-xs">Size: {species.size}</span>
+              <span className="px-2 py-1 bg-blue-700 rounded text-xs">Speed: {species.speed} ft</span>
             </div>
           </button>
         ))}
@@ -378,8 +374,6 @@ const handleLevelChange = (level: number) => {
   );
 
 const renderAbilityScoresStep = () => {
-  const raceData = RACES[character.race];
-  
   return (
     <div className="max-w-4xl mx-auto">
       <h2 className="text-3xl font-bold mb-6 text-purple-400">Assign Ability Scores</h2>
@@ -389,8 +383,6 @@ const renderAbilityScoresStep = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {slots.map((slot, index) => {
           const baseValue = slot.value || 0;
-          const racialBonus = raceData.abilityScoreIncrease?.[slot.ability] as number | undefined;
-          const totalValue = baseValue + (racialBonus || 0);
           
           return (
             <div key={slot.ability} className="p-6 bg-gray-800 rounded-lg border-2 border-purple-600">
@@ -402,12 +394,7 @@ const renderAbilityScoresStep = () => {
                   <>
                     <div className="text-sm text-gray-400 mb-1">Total Score</div>
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-3xl font-bold">{totalValue}</span>
-                      {racialBonus && (
-                        <span className="text-xs bg-purple-700 px-2 py-1 rounded">
-                          +{baseValue} ({slot.ability}) {racialBonus > 0 ? '+' : ''}{racialBonus}
-                        </span>
-                      )}
+                      <span className="text-3xl font-bold">{baseValue}</span>
                     </div>
                   </>
                 ) : (
@@ -440,7 +427,7 @@ const renderAbilityScoresStep = () => {
                 {baseValue !== 0 ? (
                   <>
                     <span className="text-sm text-gray-400">Modifier: </span>
-                    <span className="text-xl font-bold text-purple-400">+{calculateAbilityModifier(totalValue)}</span>
+                    <span className="text-xl font-bold text-purple-400">+{calculateAbilityModifier(baseValue)}</span>
                   </>
                 ) : (
                   <span className="text-sm text-gray-500">No value assigned</span>
@@ -458,16 +445,14 @@ const renderAbilityScoresStep = () => {
           {abilities.map((ability) => {
             const slot = slots.find(s => s.ability === ability);
             const baseValue = slot?.value || 0;
-            const racialBonus = raceData.abilityScoreIncrease?.[ability] as number | undefined;
-            const totalValue = baseValue + (racialBonus || 0);
             
             return (
               <div key={ability} className="p-3 bg-gray-800 rounded text-center">
                 <div className="text-xs capitalize text-gray-400 mb-1">{ability}</div>
                 {slot && slot.value !== null ? (
                   <>
-                    <div className="text-xl font-bold">{totalValue}</div>
-                    <div className="text-sm text-purple-400">+{calculateAbilityModifier(totalValue)}</div>
+                    <div className="text-xl font-bold">{baseValue}</div>
+                    <div className="text-sm text-purple-400">+{calculateAbilityModifier(baseValue)}</div>
                   </>
                 ) : (
                   <div className="text-gray-500">Unassigned</div>
@@ -641,35 +626,24 @@ const renderAbilityScoresStep = () => {
       return 6 + (character.level - 1) * 2;
     };
 
-    const getAbilityScoreWithRacialBonus = (ability: string): number => {
-      const baseScore = character.abilityScores[ability as keyof typeof character.abilityScores] || 10;
-      const raceData = RACES[character.race];
-      const racialBonus = raceData.abilityScoreIncrease?.[ability] as number | undefined;
-      return baseScore + (racialBonus || 0);
-    };
-
 const getPreparedSpellLimit = () => {
       if (spellcastingInfo.spellsKnown) {
         return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
       }
       if (spellcastingInfo.spellsPrepared && character.abilityScores.intelligence !== undefined) {
-        const totalInt = getAbilityScoreWithRacialBonus('intelligence');
-        const abilityMod = calculateAbilityModifier(totalInt);
+        const abilityMod = calculateAbilityModifier(character.abilityScores.intelligence);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
       if (spellcastingInfo.spellsPrepared && character.abilityScores.wisdom !== undefined) {
-        const totalWis = getAbilityScoreWithRacialBonus('wisdom');
-        const abilityMod = calculateAbilityModifier(totalWis);
+        const abilityMod = calculateAbilityModifier(character.abilityScores.wisdom);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
       if (spellcastingInfo.spellsPrepared && character.abilityScores.charisma !== undefined) {
-        const totalCha = getAbilityScoreWithRacialBonus('charisma');
-        const abilityMod = calculateAbilityModifier(totalCha);
+        const abilityMod = calculateAbilityModifier(character.abilityScores.charisma);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
       if (spellcastingInfo.spellsPrepared && character.abilityScores.strength !== undefined) {
-        const totalStr = getAbilityScoreWithRacialBonus('strength');
-        const abilityMod = calculateAbilityModifier(totalStr);
+        const abilityMod = calculateAbilityModifier(character.abilityScores.strength);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
       return 0;
@@ -997,22 +971,13 @@ const getPreparedSpellLimit = () => {
       return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
     };
 
-    const getAbilityScoreWithRacialBonus = (ability: string): number => {
-        const baseScore = character.abilityScores[ability as keyof typeof character.abilityScores] || 10;
-        const raceData = RACES[character.race];
-        const racialBonus = raceData.abilityScoreIncrease?.[ability] as number | undefined;
-        return baseScore + (racialBonus || 0);
-      };
-
-      const getPreparedSpellLimit = () => {
+    const getPreparedSpellLimit = () => {
         if (isWizard && spellcastingInfo?.spellsPrepared) {
-          const totalInt = getAbilityScoreWithRacialBonus('intelligence');
-          const abilityMod = calculateAbilityModifier(totalInt);
+          const abilityMod = calculateAbilityModifier(character.abilityScores.intelligence);
           return spellcastingInfo.spellsPrepared(abilityMod, character.level);
         }
         if (spellcastingInfo?.spellsPrepared && character.abilityScores.charisma !== undefined) {
-          const totalCha = getAbilityScoreWithRacialBonus('charisma');
-          const abilityMod = calculateAbilityModifier(totalCha);
+          const abilityMod = calculateAbilityModifier(character.abilityScores.charisma);
           return spellcastingInfo.spellsPrepared(abilityMod, character.level);
         }
         if (!spellcastingInfo?.spellsKnown) return 0;
@@ -1042,7 +1007,7 @@ const getPreparedSpellLimit = () => {
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="p-3 bg-gray-700 rounded text-center">
-            <div className="text-sm text-gray-400">{RACES[character.race].name}</div>
+            <div className="text-sm text-gray-400">{SPECIES[character.species].name}</div>
           </div>
           <div className="p-3 bg-gray-700 rounded text-center">
             <div className="text-sm text-gray-400 capitalize">{character.classData.class.replace('_', ' ')}</div>
@@ -1187,14 +1152,14 @@ const getPreparedSpellLimit = () => {
   );
 };
 
-  const stepNames: Step[] = ['name', 'race', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
+  const stepNames: Step[] = ['name', 'species', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
 
   return (
     <div className="max-w-6xl mx-auto">
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between mb-2">
-          {['Name', 'Race', 'Abilities', 'Class', 'Subclass', 'Spells', 'Background', 'Inventory', 'Review'].map((label, idx) => {
+          {['Name', 'Species', 'Abilities', 'Class', 'Subclass', 'Spells', 'Background', 'Inventory', 'Review'].map((label, idx) => {
             const currentStepIndex = stepNames.indexOf(step);
             const clickedStepIndex = idx;
             const isCompleted = clickedStepIndex <= currentStepIndex;
@@ -1227,7 +1192,7 @@ const getPreparedSpellLimit = () => {
 
       {/* Step Content */}
       {step === 'name' && renderNameStep()}
-      {step === 'race' && renderRaceStep()}
+      {step === 'species' && renderSpeciesStep()}
       {step === 'ability_scores' && renderAbilityScoresStep()}
       {step === 'class' && renderClassStep()}
       {step === 'subclass' && renderSubclassStep()}
