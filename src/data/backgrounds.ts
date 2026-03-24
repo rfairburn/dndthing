@@ -45,13 +45,7 @@ export const BACKGROUNDS: Record<Background, BackgroundData> = backgrounds.reduc
     skillProficiencies: bg.skillProficiencies || [],
     toolProficiencies: bg.toolProficiency,
     equipment: formatEquipment(bg.equipment || ''),
-    feature: { name: '', description: '' },
-    suggestedCharacteristics: {
-      personalityTraits: [],
-      ideals: [],
-      bonds: [],
-      flaws: []
-    }
+    feature: { name: '', description: '' }
   };
   return acc;
 }, {} as Record<Background, BackgroundData>);

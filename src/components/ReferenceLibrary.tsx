@@ -229,8 +229,29 @@ export default function ReferenceLibrary() {
             {filteredBackgrounds.map(([key, bg]) => (
               <div key={key} className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-all">
                 <h3 className="text-xl font-bold mb-2">{bg.name}</h3>
+                {bg.source && (
+                  <p className="text-purple-400 text-xs mb-2">Source: {bg.source}</p>
+                )}
                 <p className="text-gray-400 text-sm mb-4">{bg.description}</p>
                 
+                {bg.abilityScores && bg.abilityScores.length > 0 && (
+                  <div className="mb-4">
+                    <h4 className="font-semibold mb-2 text-purple-400">Ability Scores</h4>
+                    <div className="flex flex-wrap gap-1">
+                      {bg.abilityScores.map(score => (
+                        <span key={score} className="px-2 py-1 bg-yellow-700 rounded text-xs capitalize">{score}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {bg.feat && (
+                  <div className="mb-4">
+                    <h4 className="font-semibold mb-2 text-purple-400">Feat</h4>
+                    <span className="text-sm text-gray-300">{bg.feat}</span>
+                  </div>
+                )}
+
                 <div className="mb-4">
                   <h4 className="font-semibold mb-2 text-purple-400">Skill Proficiencies</h4>
                   <div className="flex flex-wrap gap-1">
@@ -263,22 +284,12 @@ export default function ReferenceLibrary() {
                   </ul>
                 </div>
 
-                <div className="mb-4 p-3 bg-gray-700 rounded-lg">
-                  <h4 className="font-semibold mb-2 text-purple-400">{bg.feature.name}</h4>
-                  <p className="text-sm text-gray-300">{bg.feature.description}</p>
-                </div>
-
-                <div>
-                  <h4 className="font-semibold mb-2 text-purple-400">Suggested Characteristics</h4>
-                  <div className="space-y-2 text-xs text-gray-400">
-                    <div>
-                      <span className="text-blue-400 font-semibold">Personality Traits:</span>
-                      {bg.suggestedCharacteristics.personalityTraits.slice(0, 1).map((trait, idx) => (
-                        <p key={idx} className="ml-4">{trait}</p>
-                      ))}
-                    </div>
+                {bg.feature.name && (
+                  <div className="mb-4 p-3 bg-gray-700 rounded-lg">
+                    <h4 className="font-semibold mb-2 text-purple-400">{bg.feature.name}</h4>
+                    <p className="text-sm text-gray-300">{bg.feature.description}</p>
                   </div>
-                </div>
+                )}
               </div>
             ))}
           </div>

@@ -105,12 +105,6 @@ export interface BackgroundData {
     name: string;
     description: string;
   };
-  suggestedCharacteristics: {
-    personalityTraits: string[];
-    ideals: string[];
-    bonds: string[];
-    flaws: string[];
-  };
 }
 
 export type ClassType = 

@@ -824,25 +824,72 @@ const getPreparedSpellLimit = () => {
   };
 
   const renderBackgroundStep = () => (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Background</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {Object.entries(BACKGROUNDS).map(([key, bg]) => (
           <button
             key={key}
             onClick={() => handleBackgroundSelect(key as Background)}
-            className={`p-6 rounded-lg border-2 transition-all text-left ${
+            className={`p-5 rounded-lg border-2 transition-all text-left ${
               character.background === key
                 ? 'border-purple-500 bg-purple-900/30'
                 : 'border-gray-700 hover:border-purple-500 bg-gray-800'
             }`}
           >
-            <h3 className="text-xl font-bold mb-2">{bg.name}</h3>
-            <p className="text-gray-400 text-sm mb-3">{bg.description}</p>
-            <div className="flex flex-wrap gap-1">
-              {bg.skillProficiencies.map(skill => (
-                <span key={skill} className="px-2 py-1 bg-purple-700 rounded text-xs">{skill}</span>
-              ))}
+            <div className="flex justify-between items-start mb-2">
+              <h3 className="text-lg font-bold">{bg.name}</h3>
+              {bg.source && (
+                <span className="text-xs text-purple-400 bg-purple-900/50 px-2 py-1 rounded">{bg.source}</span>
+              )}
+            </div>
+            
+            {(bg.abilityScores && bg.abilityScores.length > 0) || bg.feat ? (
+              <div className="mb-2 space-y-1">
+                {bg.abilityScores && bg.abilityScores.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {bg.abilityScores.map(score => (
+                      <span key={score} className="px-2 py-0.5 bg-yellow-700 rounded text-xs capitalize">{score}</span>
+                    ))}
+                  </div>
+                )}
+                {bg.feat && (
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-400">Feat:</span>
+                    <span className="text-xs font-semibold text-green-400">{bg.feat}</span>
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            <p className="text-gray-400 text-sm mb-3 line-clamp-2">{bg.description}</p>
+            
+            <div className="space-y-2">
+              <div>
+                <span className="text-xs text-gray-500 mr-2">Skills:</span>
+                <div className="flex flex-wrap gap-1">
+                  {bg.skillProficiencies.map(skill => (
+                    <span key={skill} className="px-1.5 py-0.5 bg-purple-700 rounded text-xs">{skill}</span>
+                  ))}
+                </div>
+              </div>
+
+              {bg.toolProficiencies && bg.toolProficiencies.length > 0 && (
+                <div>
+                  <span className="text-xs text-gray-500 mr-2">Tools:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {bg.toolProficiencies.map(tool => (
+                      <span key={tool} className="px-1.5 py-0.5 bg-blue-700 rounded text-xs">{tool}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {bg.feature.name && (
+                <div className="pt-2 mt-2 border-t border-gray-700">
+                  <span className="text-xs font-semibold text-purple-400">{bg.feature.name}</span>
+                </div>
+              )}
             </div>
           </button>
         ))}
