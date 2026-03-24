@@ -90,6 +90,7 @@ type AbilitySlot = {
 
 export default function CharacterGenerator() {
   const [step, setStep] = useState<Step>('name');
+  const [expandedBackground, setExpandedBackground] = useState<Background | null>(null);
   
   const [slots, setSlots] = useState<AbilitySlot[]>([
     { ability: 'strength', value: 15 },
@@ -823,79 +824,152 @@ const getPreparedSpellLimit = () => {
     );
   };
 
-  const renderBackgroundStep = () => (
+  const renderBackgroundStep = () => {
+  // Get backgrounds array, potentially reordered if expanded card is on right side (odd index)
+  const backgroundsEntries = Object.entries(BACKGROUNDS);
+  let displayOrder = [...backgroundsEntries];
+  
+  if (expandedBackground) {
+    const expandedIndex = backgroundsEntries.findIndex(([key]) => key === expandedBackground);
+    // If expanded card is on right side (odd index), swap with previous for proper grid flow
+    if (expandedIndex > 0 && expandedIndex % 2 === 1) {
+      displayOrder = [...backgroundsEntries];
+      [displayOrder[expandedIndex - 1], displayOrder[expandedIndex]] = 
+        [displayOrder[expandedIndex], displayOrder[expandedIndex - 1]];
+    }
+  }
+
+  return (
     <div className="max-w-6xl mx-auto">
       <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Background</h2>
+      <p className="text-gray-400 mb-4">Click a background to see full details. Click again to collapse.</p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {Object.entries(BACKGROUNDS).map(([key, bg]) => (
-          <button
-            key={key}
-            onClick={() => handleBackgroundSelect(key as Background)}
-            className={`p-5 rounded-lg border-2 transition-all text-left ${
-              character.background === key
-                ? 'border-purple-500 bg-purple-900/30'
-                : 'border-gray-700 hover:border-purple-500 bg-gray-800'
-            }`}
-          >
-            <div className="flex justify-between items-start mb-2">
-              <h3 className="text-lg font-bold">{bg.name}</h3>
-              {bg.source && (
-                <span className="text-xs text-purple-400 bg-purple-900/50 px-2 py-1 rounded">{bg.source}</span>
-              )}
-            </div>
-            
-            {(bg.abilityScores && bg.abilityScores.length > 0) || bg.feat ? (
-              <div className="mb-2 space-y-1">
-                {bg.abilityScores && bg.abilityScores.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {bg.abilityScores.map(score => (
-                      <span key={score} className="px-2 py-0.5 bg-yellow-700 rounded text-xs capitalize">{score}</span>
-                    ))}
-                  </div>
-                )}
-                {bg.feat && (
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-gray-400">Feat:</span>
-                    <span className="text-xs font-semibold text-green-400">{bg.feat}</span>
-                  </div>
+        {displayOrder.map(([key, bg]) => {
+          const isSelected = character.background === key;
+          const isExpanded = expandedBackground === key;
+          
+          return (
+            <button
+              key={key}
+              onClick={() => {
+                const bgKey = key as Background;
+                handleBackgroundSelect(bgKey);
+                setExpandedBackground(expandedBackground === bgKey ? null : bgKey);
+              }}
+              className={`p-5 rounded-lg border-2 transition-all text-left ${
+                isExpanded 
+                  ? 'col-span-1 md:col-span-2 border-purple-500 bg-purple-900/40'
+                  : isSelected
+                    ? 'border-purple-500 bg-purple-900/30'
+                    : 'border-gray-700 hover:border-purple-500 bg-gray-800'
+              }`}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <h3 className={`font-bold ${isExpanded ? 'text-2xl' : 'text-lg'}`}>{bg.name}</h3>
+                {bg.source && (
+                  <span className="text-xs text-purple-400 bg-purple-900/50 px-2 py-1 rounded">{bg.source}</span>
                 )}
               </div>
-            ) : null}
-
-            <p className="text-gray-400 text-sm mb-3 line-clamp-2">{bg.description}</p>
-            
-            <div className="space-y-2">
-              <div>
-                <span className="text-xs text-gray-500 mr-2">Skills:</span>
-                <div className="flex flex-wrap gap-1">
-                  {bg.skillProficiencies.map(skill => (
-                    <span key={skill} className="px-1.5 py-0.5 bg-purple-700 rounded text-xs">{skill}</span>
-                  ))}
+              
+              {(bg.abilityScores && bg.abilityScores.length > 0) || bg.feat ? (
+                <div className="mb-3 space-y-1">
+                  {bg.abilityScores && bg.abilityScores.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {bg.abilityScores.map(score => (
+                        <span key={score} className="px-2 py-0.5 bg-yellow-700 rounded text-xs capitalize">{score}</span>
+                      ))}
+                    </div>
+                  )}
+                  {bg.feat && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-400">Feat:</span>
+                      <span className="text-xs font-semibold text-green-400">{bg.feat}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
+              ) : null}
 
-              {bg.toolProficiencies && bg.toolProficiencies.length > 0 && (
-                <div>
-                  <span className="text-xs text-gray-500 mr-2">Tools:</span>
-                  <div className="flex flex-wrap gap-1">
-                    {bg.toolProficiencies.map(tool => (
-                      <span key={tool} className="px-1.5 py-0.5 bg-blue-700 rounded text-xs">{tool}</span>
-                    ))}
+              <p className={`text-gray-400 mb-3 ${isExpanded ? 'text-base' : 'text-sm line-clamp-2'}`}>{bg.description}</p>
+              
+              {isExpanded && (
+                <div className="space-y-3 pt-3 border-t border-purple-700/50 mt-3">
+                  <div>
+                    <span className="text-xs text-gray-500 mr-2 uppercase font-semibold">Skills:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {bg.skillProficiencies.map(skill => (
+                        <span key={skill} className="px-2 py-1 bg-purple-700 rounded text-sm">{skill}</span>
+                      ))}
+                    </div>
                   </div>
+
+                  {bg.toolProficiencies && bg.toolProficiencies.length > 0 && (
+                    <div>
+                      <span className="text-xs text-gray-500 mr-2 uppercase font-semibold">Tools:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {bg.toolProficiencies.map(tool => (
+                          <span key={tool} className="px-2 py-1 bg-blue-700 rounded text-sm">{tool}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <span className="text-xs text-gray-500 mr-2 uppercase font-semibold">Equipment:</span>
+                    <ul className="text-sm text-gray-300 space-y-1 ml-4">
+                      {bg.equipment.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-green-500 mt-1">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {bg.feature.name && (
+                    <div className="p-3 bg-gray-800 rounded-lg">
+                      <h4 className="font-semibold mb-2 text-purple-400">{bg.feature.name}</h4>
+                      <p className="text-sm text-gray-300 whitespace-pre-wrap">{bg.feature.description}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {bg.feature.name && (
-                <div className="pt-2 mt-2 border-t border-gray-700">
-                  <span className="text-xs font-semibold text-purple-400">{bg.feature.name}</span>
+              {!isExpanded && (
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-xs text-gray-500 mr-2">Skills:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {bg.skillProficiencies.map(skill => (
+                        <span key={skill} className="px-1.5 py-0.5 bg-purple-700 rounded text-xs">{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {bg.toolProficiencies && bg.toolProficiencies.length > 0 && (
+                    <div>
+                      <span className="text-xs text-gray-500 mr-2">Tools:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {bg.toolProficiencies.map(tool => (
+                          <span key={tool} className="px-1.5 py-0.5 bg-blue-700 rounded text-xs">{tool}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {bg.feature.name && (
+                    <div className="pt-2 mt-2 border-t border-gray-700">
+                      <span className="text-xs font-semibold text-purple-400">{bg.feature.name}</span>
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
+};
 
   const renderReviewStep = () => {
     const classKey = character.classData.class;
