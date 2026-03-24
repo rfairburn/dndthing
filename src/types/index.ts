@@ -7,7 +7,7 @@ export interface Character {
   id: string;
   name: string;
   playerName?: string;
-  race: Race;
+  species: Species;
   background: Background;
   classData: ClassEntry;
   level: number;
@@ -71,7 +71,28 @@ export interface AbilityScores {
   charisma: number;
 }
 
-export type Race = "human" | "dwarf" | "elf" | "halfling" | "dragonborn" | "gnome" | "half-elf" | "half-orc" | "tiefling";
+export type Species = 
+  | "aasimar" 
+  | "boggart" 
+  | "changeling" 
+  | "dhampir" 
+  | "dragonborn" 
+  | "dwarf" 
+  | "elf" 
+  | "faerie" 
+  | "flamekin" 
+  | "gnome" 
+  | "goliath" 
+  | "halfling" 
+  | "human" 
+  | "kalashtar" 
+  | "khoravar" 
+  | "lorwyn-changeling" 
+  | "orc" 
+  | "rimekin" 
+  | "shifter" 
+  | "tiefling" 
+  | "warforged";
 
 export interface CharacterTrait {
   name: string;
@@ -277,7 +298,7 @@ export interface Feature {
   name: string;
   description: string;
   level?: number;
-  source: "class" | "race" | "background" | "feat";
+  source: "class" | "species" | "background" | "feat";
 }
 
 export type Action = 

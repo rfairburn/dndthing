@@ -46,7 +46,7 @@ const config = yargs(hideBin(process.argv))
   .alias('help', 'h')
   .parseSync();
 
-type ScrapeType = 'spells' | 'subclasses' | 'feats' | 'backgrounds';
+type ScrapeType = 'spells' | 'subclasses' | 'feats' | 'backgrounds' | 'species';
 
 interface ScrapedItem {
   name: string;
@@ -227,6 +227,45 @@ async function getAllBackgroundNames(browser: puppeteer.Browser): Promise<string
   
   console.log(`  ✓ Found ${backgroundLinks.length} total backgrounds`);
   return backgroundLinks;
+}
+
+async function getAllSpeciesNames(browser: puppeteer.Browser): Promise<string[]> {
+  console.log(`\n📋 Fetching all species from http://dnd2024.wikidot.com/species:all...`);
+  
+  const page = await browser.newPage();
+  
+  let html: string;
+  try {
+    const response = await axios.get('http://dnd2024.wikidot.com/species:all', { timeout: 10000 });
+    html = response.data;
+  } catch (error) {
+    console.error(`❌ Failed to fetch species index page`);
+    process.exit(1);
+  }
+  
+  await page.setContent(html);
+  
+  const speciesLinks = await page.evaluate(() => {
+    const links: string[] = [];
+    
+    // Look for all links starting with /species: (excluding :all)
+    const allLinks = document.querySelectorAll('a[href^="/species:"]');
+    
+    allLinks.forEach(el => {
+      const href = el.getAttribute('href');
+      if (href && !href.includes(':all') && !href.includes('#toc')) {
+        const match = href.match(/\/species:([a-zA-Z0-9\-]+)/);
+        if (match) {
+          links.push(match[1]);
+        }
+      }
+    });
+    
+    return [...new Set(links)];
+  });
+  
+  console.log(`  ✓ Found ${speciesLinks.length} total species`);
+  return speciesLinks;
 }
 
 async function fetchPageHtml(url: string): Promise<string> {
@@ -561,7 +600,7 @@ async function scrapeBackgroundPage(browser: puppeteer.Browser, backgroundName: 
     
     await page.setContent(html, { waitUntil: 'domcontentloaded' });
     
-const backgroundData = await page.evaluate((backgroundParam: string) => {
+ const backgroundData = await page.evaluate((backgroundParam: string) => {
       const titleSpan = document.querySelector('.page-title.page-header span');
       const friendlyName = titleSpan?.textContent?.trim() || backgroundParam;
       
@@ -663,6 +702,125 @@ const backgroundData = await page.evaluate((backgroundParam: string) => {
     }
     
     return backgroundData;
+    
+  } finally {
+    await page.close();
+  }
+}
+
+async function scrapeSpeciesPage(browser: puppeteer.Browser, speciesName: string): Promise<any> {
+  const url = `http://dnd2024.wikidot.com/species:${speciesName}`;
+  const html = await fetchPageHtml(url);
+  
+  const page = await browser.newPage();
+  
+  try {
+    await page.evaluate(() => {
+      (window as any).__name = (fn: Function) => fn;
+    });
+    
+    await page.setJavaScriptEnabled(false);
+    
+    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    
+    const speciesData = await page.evaluate((speciesParam: string) => {
+      const titleSpan = document.querySelector('.page-title.page-header span');
+      const friendlyName = titleSpan?.textContent?.trim() || speciesParam;
+      
+      // Get all paragraphs from main content, splitting by <br> tags
+      const rawParagraphs = Array.from(document.querySelectorAll('.main-content p'));
+      const textLines: string[] = [];
+      
+      for (const para of rawParagraphs) {
+        const htmlContent = para.innerHTML;
+        const lines = htmlContent.split(/<br\s*\/?>/i);
+        
+        for (const line of lines) {
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = line;
+          const text = tempDiv.textContent?.trim() || '';
+          if (text) {
+            textLines.push(text);
+          }
+        }
+      }
+      
+      if (textLines.length === 0) {
+        return null;
+      }
+      
+      let source: string | undefined;
+      let creatureType: string | undefined;
+      let size: string | undefined;
+      let speed: number | undefined;
+      const traits: Array<{name: string, description: string}> = [];
+      const descriptionParts: string[] = [];
+      
+      for (const text of textLines) {
+        // Skip source line
+        if (text.startsWith('Source:')) {
+          source = text.replace('Source:', '').trim();
+          continue;
+        }
+        
+        // Skip navigation links
+        if (text.includes('[Home]') || text.includes('»')) {
+          continue;
+        }
+        
+        // Parse species traits section - each field is on its own line
+        if (text.startsWith('Creature Type:')) {
+          creatureType = text.replace('Creature Type:', '').trim();
+          continue;
+        }
+        
+        if (text.startsWith('Size:')) {
+          size = text.replace('Size:', '').trim();
+          continue;
+        }
+        
+        if (text.startsWith('Speed:')) {
+          const speedText = text.replace('Speed:', '').trim();
+          // Extract number from "30 feet" format
+          const match = speedText.match(/(\d+)/);
+          if (match) {
+            speed = parseInt(match[1], 10);
+          }
+          continue;
+        }
+        
+        // Check for trait headers (bold text followed by description)
+        // Traits typically start with a capitalized name and period, like "Darkvision." or "Dwarven Resilience."
+        const traitMatch = text.match(/^([A-Z][^.]+)\.\s*(.+)$/);
+        if (traitMatch && !text.startsWith('As a ') && !text.includes('You can use this')) {
+          traits.push({
+            name: traitMatch[1].trim(),
+            description: traitMatch[2].trim()
+          });
+        } else if (text) {
+          // Otherwise it's part of the main description
+          descriptionParts.push(text);
+        }
+      }
+      
+      const description = descriptionParts.join('\n\n').trim();
+      
+      return {
+        name: friendlyName,
+        source: source || undefined,
+        creatureType: creatureType || undefined,
+        size: size || undefined,
+        speed: speed || undefined,
+        traits: traits.length > 0 ? traits : undefined,
+        description: description || undefined
+      };
+    }, speciesName);
+    
+    if (!speciesData) {
+      throw new Error('Failed to extract species data from page');
+    }
+    
+    return speciesData;
     
   } finally {
     await page.close();
@@ -1110,6 +1268,100 @@ async function scrapeBackgrounds(browser: puppeteer.Browser): Promise<void> {
   }
 }
 
+async function scrapeSpecies(browser: puppeteer.Browser): Promise<void> {
+  let speciesNames: string[] = [];
+  
+  if (config['items'] && config['items'].trim()) {
+    speciesNames = config['items'].split(',').map(s => s.trim()).filter(s => s);
+    console.log(`⚙️  Targeted scrape mode: ${speciesNames.length} specific species`);
+  } else {
+    const allSpeciesNames = await getAllSpeciesNames(browser);
+    
+    if (allSpeciesNames.length === 0) {
+      console.error('❌ No species found in index, exiting...');
+      process.exit(1);
+    }
+    
+    speciesNames = allSpeciesNames;
+    
+    if (config['max-items']) {
+      console.log(`⚙️  Test mode: Limiting to first ${config['max-items']} species`);
+      speciesNames = speciesNames.slice(0, config['max-items']);
+    }
+  }
+  
+  if (config['continue-on-error']) {
+    console.log(`⚙️  Continue on error mode enabled`);
+  }
+  console.log(`⚙️  Delay between requests: ${config.delay}ms\n`);
+  
+  const allSpecies: any[] = [];
+  let successCount = 0;
+  let warningCount = 0;
+  let errorCount = 0;
+  
+  try {
+    console.log(`📜 Scraping ${speciesNames.length} individual species pages...\n`);
+    
+    for (const [index, speciesName] of speciesNames.entries()) {
+      if (config['max-items'] && index >= config['max-items']) break;
+      
+      const progress = Math.round((index + 1) / speciesNames.length * 100);
+      process.stdout.write(`\r[${'='.repeat(Math.floor(progress / 2))}${' '.repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${speciesNames.length} (${progress}%) - ${speciesName}`);
+      
+      if (index > 0) {
+        await new Promise(resolve => setTimeout(resolve, config.delay));
+      }
+      
+      try {
+        const speciesData = await scrapeWithRetry(browser, speciesName, scrapeSpeciesPage, config.retries);
+        
+        if (!speciesData || !speciesData.name) {
+          console.warn(`\n⚠️  ${speciesName}: Failed to extract data`);
+          
+          warningCount++;
+          
+          if (!config['continue-on-error']) {
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            await savePartialOutput(allSpecies, timestamp, 'species');
+            printSummary(successCount, warningCount, errorCount, speciesNames.length);
+            console.log('\n⛔ Stopping due to error.');
+            process.exit(1);
+          }
+          
+          continue;
+        }
+        
+        allSpecies.push(speciesData);
+        successCount++;
+        
+      } catch (error: any) {
+        console.warn(`\n❌ ${speciesName}: ${error.message}`);
+        
+        errorCount++;
+        
+        if (!config['continue-on-error']) {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+          await savePartialOutput(allSpecies, timestamp, 'species');
+          printSummary(successCount, warningCount, errorCount, speciesNames.length);
+          console.log('\n⛔ Stopping due to error.');
+          process.exit(1);
+        }
+      }
+    }
+    
+    const outputPath = 'src/data/species.json';
+    fs.writeFileSync(outputPath, JSON.stringify(allSpecies, null, 2));
+    console.log(`\n\n✓ Final output saved to ${outputPath}`);
+    
+    printSummary(successCount, warningCount, errorCount, speciesNames.length);
+    
+  } catch (error: any) {
+    console.error(`\n❌ Fatal error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
 async function main(): Promise<void> {
   const typesInput = config.types as string;
   
@@ -1121,10 +1373,10 @@ async function main(): Promise<void> {
     scrapeTypes = typesInput.split(',').map(t => t.trim()) as ScrapeType[];
     
     // Validate: check for invalid types
-    const validTypes = ['spells', 'subclasses', 'feats', 'backgrounds', 'all'];
+    const validTypes = ['spells', 'subclasses', 'feats', 'backgrounds', 'species', 'all'];
     for (const type of scrapeTypes) {
       if (!validTypes.includes(type)) {
-        console.error(`\n❌ Error: Invalid type "${type}". Valid options: spells, subclasses, feats, backgrounds, all`);
+        console.error(`\n❌ Error: Invalid type "${type}". Valid options: spells, subclasses, feats, backgrounds, species, all`);
         process.exit(1);
       }
     }
@@ -1150,6 +1402,9 @@ async function main(): Promise<void> {
       } else if (type === 'backgrounds') {
         console.log('📜 Scraping backgrounds...\n');
         await scrapeBackgrounds(browser);
+      } else if (type === 'species') {
+        console.log('📜 Scraping species...\n');
+        await scrapeSpecies(browser);
       }
       
       // Add separator between types (except after last)
