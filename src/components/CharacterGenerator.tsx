@@ -801,16 +801,10 @@ const renderAbilityScoresStep = () => {
     const classKey = character.classData.class;
     const classData = CLASSES[classKey];
     
-    // DEBUG: Log class data
-    console.log('Spells Step - Class:', classKey);
-    console.log('Spells Step - spellcastingInfo:', classData.spellcastingInfo ? 'EXISTS' : 'UNDEFINED');
-    
     // Get all spells and filter by the selected class
     const allSpellsForClass = getSpellsForClass(classKey);
-    console.log('Spells Step - All spells for class:', allSpellsForClass.length);
     
     if (!classData.spellcastingInfo) {
-      console.log('Spells Step - NO SPELLCASTING INFO, showing error');
       return (
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold mb-6 text-purple-400">Spells</h2>

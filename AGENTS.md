@@ -221,6 +221,7 @@ npx tsx scripts/scrape-dnd2024.ts --types spells --items fireball,magic-missile 
 ## Code Quality Checklist
 - [ ] TypeScript compilation passes (`npm run build`)
 - [ ] All scraped data validated against JSON Schema (all 5 types)
+- [ ] Unit tests pass for all modified code
 - [ ] Mobile-responsive design verified
 - [ ] No hardcoded magic strings (use type definitions)
 - [ ] Class filtering uses `getSpellsForClass()` function
@@ -311,6 +312,24 @@ Before committing changes:
 2. Check cached HTML in `cache/wikidot/` for debugging
 3. Adjust `--delay` parameter if rate limited (default 200ms)
 4. Verify page structure hasn't changed on wikidot.com
+
+### Adding or Modifying Code
+1. Run `npm run build` - TypeScript compilation must pass
+2. Run unit tests with `npm run test` (if available) for all modified code
+3. Run validators for any modified scraped data types (e.g., `npm run validate:species`)
+4. Verify mobile-responsive design if UI components changed
+5. Check that no secrets or cache files are included in commit
+
+### Unit Test Requirements
+- **New code must include unit tests** - All new features, components, and utility functions should have corresponding tests
+- **Existing tests must be updated** - When modifying existing code, update unit tests to reflect new behavior
+- **Test coverage should increase** - Each pull request should maintain or improve overall test coverage
+- **Test patterns to follow**:
+  - Use Vitest (project's testing framework)
+  - Test component props, state changes, and user interactions
+  - Test utility functions with edge cases and error conditions
+  - Test data transformers and parsers with sample inputs
+  - Mock external dependencies (API calls, browser APIs)
 
 ### UI Component Updates
 1. Always use functional state updates: `setCharacter(prev => {...})`
