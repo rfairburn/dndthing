@@ -13,15 +13,18 @@
 
 ### Data Files (Hardcoded, manually maintained)
 - `src/data/classes.ts` - Class definitions with features and spellcasting info
-- `src/data/racesAndBackgrounds.ts` - Race data + **formatted backgrounds** (12 backgrounds with full details)
 - `src/data/feats.ts` - 30 core feats with benefits/prerequisites
 
 ### Data Files (Generated from web scrape, commit these too)
 - `src/data/spells.json` - 411 official D&D 2024 SRD spells (verified against wikidot.com)
 - `src/data/subclasses.json` - 61 subclasses scraped from wikidot.com
-- `src/data/feats.json` - 155 feats scraped from wikidot.com
+- `src/data/feats.json` - 155 feats scraped from wikidot.com (kept for reference)
+- `src/data/backgrounds.json` - 56 backgrounds with ability scores, feats, proficiencies
+- `src/data/species.json` - 21 species entries with traits, sizes, speed
 - `src/data/spells.ts` - Transformer that creates SPELLS_BY_CLASS mapping from spells.json
 - `src/data/subclasses.ts` - Transformer that maps subclass names to scraped data
+- `src/data/backgrounds.ts` - Background transformer with abilityScores/feat/proficiencies
+- `src/data/species.ts` - Transformer: loads SPECIES record from scraped data
 
 ### Configuration & Build
 - `package.json` - Dependencies and scripts
@@ -36,9 +39,17 @@
 - `scripts/validate-output.ts` - JSON Schema validation script
 - `scripts/test-scrape.ts` - Debug tool for individual items
 
+### Schemas (JSON Schema files for validation)
+- `src/data/schemas/spell.schema.json` - Spell data schema
+- `src/data/schemas/subclass.schema.json` - Subclass data schema
+- `src/data/schemas/feat.schema.json` - Feat data schema
+- `src/data/schemas/background.schema.json` - Background data schema
+- `src/data/schemas/species.schema.json` - Species data schema
+
 ### Documentation
 - `AGENTS.md` - Agent instructions and project overview
-- `README.md` - Main progject readme.
+- `README.md` - Main project readme
+- `COMMIT_GUIDE.md` - This commit guide
 
 ---
 
@@ -61,30 +72,39 @@
 
 | File | Source | Purpose | Commit? |
 |------|--------|---------|---------|
-| spells.json | Web scraped | Raw spell data from wikidot.com | ✅ Yes |
+| spells.json | Web scraped | Raw spell data from wikidot.com (411 items) | ✅ Yes |
 | spells.ts | Transformer | Creates SPELLS_BY_CLASS mapping | ✅ Yes |
-| subclasses.json | Web scraped | Raw subclass data from wikidot.com | ✅ Yes |
+| subclasses.json | Web scraped | Raw subclass data from wikidot.com (61 items) | ✅ Yes |
 | subclasses.ts | Transformer | Maps friendly names to scraped data | ✅ Yes |
-| feats.json | Web scraped | Raw feat data from wikidot.com | ⚠️ Optional (kept for reference) |
+| feats.json | Web scraped | Raw feat data from wikidot.com (155 items) | ✅ Yes |
 | feats.ts | Hardcoded | Core 30 feats with benefits/prerequisites | ✅ Yes |
-| racesAndBackgrounds.ts | Hardcoded | Races + **12 formatted backgrounds** | ✅ Yes |
+| backgrounds.json | Web scraped | Backgrounds with ability scores, feats, proficiencies (56 items) | ✅ Yes |
+| backgrounds.ts | Transformer | Background transformer with abilityScores/feat/proficiencies | ✅ Yes |
+| species.json | Web scraped | Species entries with traits, sizes, speed (21 items) | ✅ Yes |
+| species.ts | Transformer | Loads SPECIES record from scraped data | ✅ Yes |
+
+All 5 scraped data types have JSON Schema validators for complete coverage.
 
 ---
 
-## Background Data Note
+## Validation Commands
 
-The **formatted backgrounds data is in `racesAndBackgrounds.ts`**, NOT in a separate JSON file. The scraper overwrote `backgrounds.json` with only 1 entry from wikidot.com, so we deleted it and rely on the TypeScript file which has all 12 backgrounds with full details (skill proficiencies, equipment, features, suggested characteristics).
+```bash
+# Validate all scraped data types against JSON Schema
+npm run validate:spells      # 411 spells
+npm run validate:subclasses  # 61 subclasses
+npm run validate:feats       # 30 feats
+npm run validate:backgrounds # 56 backgrounds
+npm run validate:species     # 21 species
+
+# All 5 scraped data types have validators for complete coverage
+```
 
 ---
 
 ## Quick Commands
 
 ```bash
-# Validate scraped data against JSON Schema
-npm run validate:spells
-npm run validate:subclasses --schema src/data/schemas/subclass.schema.json
-npm run validate:feats --schema src/data/schemas/feat.schema.json
-
 # Build the app
 npm run build
 

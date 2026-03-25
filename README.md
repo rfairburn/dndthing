@@ -132,7 +132,8 @@ Scraper writes to fixed filenames in `src/data/`:
 - `spells.json` - All spells with attributes (level, school, components, etc.)
 - `subclasses.json` - Subclass data with descriptions and sources
 - `feats.json` - Feat data with benefits and prerequisites
-- `backgrounds.json` - Background data (note: formatted backgrounds are in TypeScript)
+- `backgrounds.json` - Background data with ability scores, feats, proficiencies
+- `species.json` - Species data with traits, sizes, speed (21 entries)
 
 ### Validation
 
@@ -140,15 +141,21 @@ Validate scraped output against JSON Schema (auto-detects schema based on type):
 
 ```bash
 # Validate all types
-npm run validate:spells
-npm run validate:subclasses
-npm run validate:feats
-npm run validate:backgrounds
+npm run validate:spells      # 411 spells
+npm run validate:subclasses  # 61 subclasses
+npm run validate:feats       # 30 feats
+npm run validate:backgrounds # 56 backgrounds
+npm run validate:species     # 21 species
 
 # Or use --type flag directly with the script
 npx tsx scripts/validate-output.ts --type spells
 npx tsx scripts/validate-output.ts --type subclasses
+npx tsx scripts/validate-output.ts --type feats
+npx tsx scripts/validate-output.ts --type backgrounds
+npx tsx scripts/validate-output.ts --type species
 ```
+
+All 5 scraped data types have JSON Schema validators for complete coverage.
 
 ---
 
@@ -163,14 +170,17 @@ dnd-character-generator/
 │   └── test-scrape.ts         # Debug tool for individual items
 ├── src/
 │   ├── data/
-│   │   ├── schemas/           # JSON Schema files for validation
+│   │   ├── schemas/           # JSON Schema files for validation (5 total)
 │   │   ├── spells.json        # 411 official D&D 2024 SRD spells
 │   │   ├── spells.ts          # Transformer: creates SPELLS_BY_CLASS mapping
 │   │   ├── subclasses.json    # 61 subclasses scraped from wikidot.com
 │   │   ├── subclasses.ts      # Transformer: maps friendly names to data
 │   │   ├── feats.json         # Optional: 155 feats (kept for reference)
 │   │   ├── feats.ts           # Core 30 hardcoded feats with benefits/prerequisites
-│   │   └── racesAndBackgrounds.ts # Races + 12 formatted backgrounds
+│   │   ├── backgrounds.json   # 56 backgrounds with ability scores, feats, proficiencies
+│   │   ├── backgrounds.ts     # Background transformer with abilityScores/feat/proficiencies
+│   │   ├── species.json       # 21 scraped species entries with traits/sizes/speed
+│   │   └── species.ts         # Transformer: loads SPECIES record from scraped data
 │   ├── types/
 │   │   └── index.ts           # TypeScript interfaces and type definitions
 │   ├── components/
@@ -185,18 +195,34 @@ dnd-character-generator/
 
 ---
 
-## Key Implementation Notes
+## Rules Reference
 
-### Wizard Spellcasting Rules (Official 2024 SRD)
+For official D&D 2024 SRD rules context, use the included PDF parser tools:
 
-1. **Cantrips**: Know three Wizard cantrips separately - NOT in spellbook (+1 at levels 4 and 10)
-2. **Spellbook**: Contains ONLY level 1+ spells, starts with exactly 6 level 1 spells, gains +2 per wizard level after 1st (formula: `6 + (level-1)*2`)
-3. **Prepared Spells**: Choose Int mod + wizard level spells from spellbook (minimum one)
+**Source**: https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf
 
-### Official Subclasses
+### Quick Search for Rules
+```bash
+# First, parse the PDF (run once)
+npm run parse:srd-pdf
 
-**Wizard**: Order of Scribes, Bladeschool, War Magic, Chronurgy, Goldsmithy  
-**Artificer**: Armorer, Alchemist, Battle Smith, Mystic
+# Then search for specific rules
+npm run query:srd <search term>
+
+# Examples:
+npm run query:srd "spell slots"
+npm run query:srd "background bonuses"  
+npm run query:srd "species traits"
+npm run query:srd "wizard spellbook"
+```
+
+### When to Reference the SRD PDF
+- **Character creation flow**: Verify species → background → ability scores order
+- **Spellcasting rules**: Confirm cantrip/spellbook/prepared spell mechanics
+- **Background stat bonuses**: Check +3 distribution rules (+2/+1 or +1/+1/+1)
+- **Equipment/proficiencies**: Validate what backgrounds grant
+
+**Note**: The parsed output is in `rules-reference/` which is gitignored (not committed for licensing reasons). Re-run `npm run parse:srd-pdf` as needed.
 
 ---
 

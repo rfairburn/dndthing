@@ -18,7 +18,10 @@
     "validate:spells": "tsx scripts/validate-output.ts --type spells",
     "validate:subclasses": "tsx scripts/validate-output.ts --type subclasses",
     "validate:feats": "tsx scripts/validate-output.ts --type feats",
-    "validate:backgrounds": "tsx scripts/validate-output.ts --type backgrounds"
+    "validate:backgrounds": "tsx scripts/validate-output.ts --type backgrounds",
+    "validate:species": "tsx scripts/validate-output.ts --type species",
+    "parse:srd-pdf": "tsx scripts/parse-srd-pdf.ts",
+    "query:srd": "tsx scripts/query-srd.ts"
   },
   "dependencies": {
     "react": "^19.2.4",
@@ -40,6 +43,7 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
+    "pdf-parse": "^1.1.1",
     "postcss": "^8.5.8",
     "puppeteer": "^24.40.0",
     "tailwindcss": "^4.2.2",

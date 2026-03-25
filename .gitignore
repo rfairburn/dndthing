@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cache and generated references (not committed)
+cache/
+rules-reference/
