@@ -7,7 +7,7 @@ export interface Character {
   id: string;
   name: string;
   playerName?: string;
-  species: Species;
+  species?: Species;
   selectedSize?: "Small" | "Medium";
   background: Background;
   classData: ClassEntry;

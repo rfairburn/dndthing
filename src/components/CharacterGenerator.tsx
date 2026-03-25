@@ -92,6 +92,7 @@ export default function CharacterGenerator() {
   const [step, setStep] = useState<Step>('name');
   const [expandedBackground, setExpandedBackground] = useState<Background | null>(null);
   const [expandedSpecies, setExpandedSpecies] = useState<string | null>(null);
+  const [speciesSelected, setSpeciesSelected] = useState(false);
   
   const handleSpeciesToggle = (speciesName: string) => {
     if (expandedSpecies === speciesName) {
@@ -117,7 +118,11 @@ export default function CharacterGenerator() {
   };
 
   const handleSizeSelect = (size: "Small" | "Medium") => {
-    setCharacter({ ...character, selectedSize: size });
+    // Only set size if a species is currently selected and expanded
+    if (expandedSpecies && character.species) {
+      setCharacter({ ...character, selectedSize: size });
+      setSpeciesSelected(true);
+    }
   };
   
   const [slots, setSlots] = useState<AbilitySlot[]>([
@@ -151,7 +156,6 @@ export default function CharacterGenerator() {
     id: '',
     name: '',
     playerName: '',
-    species: "human" as Species,
     background: "acolyte" as Background,
     classData: { class: "fighter" },
     level: 1,
@@ -427,8 +431,8 @@ const handleLevelChange = (level: number) => {
     
     if (expandedSpecies) {
       const expandedIndex = speciesEntries.findIndex(([key]) => key === expandedSpecies);
-      // If expanded card is on right side (odd index), swap with previous for proper grid flow
-      if (expandedIndex > 0 && expandedIndex % 2 === 1) {
+      // If expanded card is on right side (index 1 or 2 in a row of 3), swap with previous for proper grid flow
+      if (expandedIndex > 0 && expandedIndex % 3 !== 0) {
         displayOrder = [...speciesEntries];
         [displayOrder[expandedIndex - 1], displayOrder[expandedIndex]] = 
           [displayOrder[expandedIndex], displayOrder[expandedIndex - 1]];
@@ -1254,15 +1258,15 @@ const getPreparedSpellLimit = () => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="p-3 bg-gray-700 rounded text-center">
-            <div className="text-sm text-gray-400">{SPECIES[character.species].name}</div>
-          </div>
+<div className="p-3 bg-gray-700 rounded text-center">
+              <div className="text-sm text-gray-400">{character.species ? SPECIES[character.species].name : 'Not selected'}</div>
+            </div>
           <div className="p-3 bg-gray-700 rounded text-center">
             <div className="text-sm text-gray-400 capitalize">{character.classData.class.replace('_', ' ')}</div>
           </div>
-          <div className="p-3 bg-gray-700 rounded text-center">
-            <div className="text-sm text-gray-400">{BACKGROUNDS[character.background].name}</div>
-          </div>
+<div className="p-3 bg-gray-700 rounded text-center">
+              <div className="text-sm text-gray-400">{character.species ? SPECIES[character.species].name : 'Not selected'}</div>
+            </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
@@ -1466,9 +1470,12 @@ const getPreparedSpellLimit = () => {
         {step !== 'review' && (
           <button
             onClick={nextStep}
-            disabled={step === 'name' && !character.name}
+            disabled={
+              (step === 'name' && !character.name) ||
+              (step === 'species' && !speciesSelected)
+            }
             className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-              step === 'name' && !character.name
+              (step === 'name' && !character.name) || (step === 'species' && !speciesSelected)
                 ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                 : 'bg-purple-600 hover:bg-purple-500'
             }`}
