@@ -81,6 +81,122 @@ const druidSpellcastingInfo: SpellcastingInfo = {
   spellSlots: spellSlotProgression
 };
 
+// Bard spellcasting info (from wikidot - SRD has page break issues)
+const bardSpellcastingInfo: SpellcastingInfo = {
+  cantripsKnown: [2, 2, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+  spellsPrepared: (abilityMod: number, level: number) => {
+    // Bard prepares Cha mod + bard level
+    return abilityMod + level;
+  },
+  spellSlots: {
+    level1: [0, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    level2: [0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    level3: [0, 0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    level4: [0, 0, 0, 0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    level5: [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    level6: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    level7: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+    level8: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+    level9: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1]
+  }
+};
+
+// Cleric spellcasting info (from SRD)
+const clericSpellcastingInfo: SpellcastingInfo = {
+  cantripsKnown: [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  spellsPrepared: (abilityMod: number, level: number) => {
+    // Cleric prepares Wis mod + cleric level
+    return abilityMod + level;
+  },
+  spellSlots: {
+    level1: [0, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+    level2: [0, 0, 0, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    level3: [0, 0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    level4: [0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    level5: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4],
+    level6: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 4, 4, 4, 4, 4],
+    level7: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 4, 4, 4],
+    level8: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 4],
+    level9: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3]
+  }
+};
+
+// Paladin spellcasting info (from SRD)
+const paladinSpellcastingInfo: SpellcastingInfo = {
+  cantripsKnown: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  spellsPrepared: (abilityMod: number, level: number) => {
+    // Paladin prepares Cha mod + paladin level
+    return abilityMod + level;
+  },
+  spellSlots: {
+    level1: [0, 0, 0, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+    level2: [0, 0, 0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    level3: [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    level4: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3],
+    level5: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3],
+    level6: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3],
+    level7: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3],
+    level8: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+    level9: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  }
+};
+
+// Ranger spellcasting info (from wikidot - max 5th level slots)
+const rangerSpellcastingInfo: SpellcastingInfo = {
+  cantripsKnown: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  spellsPrepared: (abilityMod: number, level: number) => {
+    // Ranger prepares Wis mod + ranger level
+    return abilityMod + level;
+  },
+  spellSlots: {
+    level1: [0, 2, 2, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    level2: [0, 0, 0, 0, 0, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    level3: [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    level4: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2],
+    level5: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 2, 2]
+  }
+};
+
+// Sorcerer spellcasting info (from SRD)
+const sorcererSpellcastingInfo: SpellcastingInfo = {
+  cantripsKnown: [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+  spellsPrepared: (abilityMod: number, level: number) => {
+    // Sorcerer prepares Cha mod + sorcerer level
+    return abilityMod + level;
+  },
+  spellSlots: {
+    level1: [0, 2, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    level2: [0, 0, 0, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    level3: [0, 0, 0, 0, 0, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    level4: [0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    level5: [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    level6: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 4, 4, 4, 4, 4, 4],
+    level7: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 4, 4, 4, 4],
+    level8: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 4, 4],
+    level9: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4]
+  }
+};
+
+// Warlock spellcasting info (from SRD)
+const warlockSpellcastingInfo: SpellcastingInfo = {
+  cantripsKnown: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+  spellsPrepared: (abilityMod: number, level: number) => {
+    // Warlock prepares Cha mod + warlock level
+    return abilityMod + level;
+  },
+  spellSlots: {
+    level1: [0, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9],
+    level2: [0, 0, 0, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+    level3: [0, 0, 0, 0, 0, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7],
+    level4: [0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7],
+    level5: [0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7],
+    level6: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 5, 6, 7, 7, 7, 7],
+    level7: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 5, 6, 7, 7],
+    level8: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4, 5, 6],
+    level9: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 4]
+  }
+};
+
 function transformClass(classJson: any): ClassData {
   const classKey = classJson.name.toLowerCase();
   
@@ -129,8 +245,20 @@ function transformClass(classJson: any): ClassData {
   // Add spellcasting info for spellcasting classes
   if (classKey === 'artificer') {
     spellcastingInfo = artificerSpellcastingInfo;
+  } else if (classKey === 'bard') {
+    spellcastingInfo = bardSpellcastingInfo;
+  } else if (classKey === 'cleric') {
+    spellcastingInfo = clericSpellcastingInfo;
   } else if (classKey === 'druid') {
     spellcastingInfo = druidSpellcastingInfo;
+  } else if (classKey === 'paladin') {
+    spellcastingInfo = paladinSpellcastingInfo;
+  } else if (classKey === 'ranger') {
+    spellcastingInfo = rangerSpellcastingInfo;
+  } else if (classKey === 'sorcerer') {
+    spellcastingInfo = sorcererSpellcastingInfo;
+  } else if (classKey === 'warlock') {
+    spellcastingInfo = warlockSpellcastingInfo;
   }
   
   return {
