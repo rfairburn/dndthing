@@ -1057,45 +1057,68 @@ const getPreparedSpellLimit = () => {
   };
 
   const renderBackgroundStep = () => {
-  // Get backgrounds array, potentially reordered if expanded card is on right side (odd index)
-  const backgroundsEntries = Object.entries(BACKGROUNDS);
-  let displayOrder = [...backgroundsEntries];
-  
-  if (expandedBackground) {
-    const expandedIndex = backgroundsEntries.findIndex(([key]) => key === expandedBackground);
-    // If expanded card is on right side (odd index), swap with previous for proper grid flow
-    if (expandedIndex > 0 && expandedIndex % 2 === 1) {
-      displayOrder = [...backgroundsEntries];
-      [displayOrder[expandedIndex - 1], displayOrder[expandedIndex]] = 
-        [displayOrder[expandedIndex], displayOrder[expandedIndex - 1]];
+    // Get backgrounds array, potentially reordered if expanded card needs to move left before expanding
+    const backgroundsEntries = Object.entries(BACKGROUNDS);
+    let displayOrder = [...backgroundsEntries];
+    
+    if (expandedBackground) {
+      const expandedIndex = backgroundsEntries.findIndex(([key]) => key === expandedBackground);
+      
+      // Move selected card to leftmost position of its row before expanding
+      // Row starts at: expandedIndex - (expandedIndex % 3)
+      const rowStart = expandedIndex - (expandedIndex % 3);
+      
+      if (rowStart !== expandedIndex) {
+        // Build new order: cards before row, selected card, then remaining cards in row
+        displayOrder = [];
+        
+        // Add all cards before this row
+        for (let i = 0; i < rowStart; i++) {
+          displayOrder.push(backgroundsEntries[i]);
+        }
+        
+        // Add the selected card first in its row
+        displayOrder.push(backgroundsEntries[expandedIndex]);
+        
+        // Add remaining cards in this row (excluding the selected one)
+        for (let i = rowStart; i <= expandedIndex; i++) {
+          if (i !== expandedIndex) {
+            displayOrder.push(backgroundsEntries[i]);
+          }
+        }
+        
+        // Add all cards after this row
+        for (let i = expandedIndex + 1; i < backgroundsEntries.length; i++) {
+          displayOrder.push(backgroundsEntries[i]);
+        }
+      }
     }
-  }
 
-  return (
-    <div className="max-w-6xl mx-auto">
-      <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Background</h2>
-      <p className="text-gray-400 mb-4">Click a background to see full details. Click again to collapse.</p>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {displayOrder.map(([key, bg]) => {
-          const isSelected = character.background === key;
-          const isExpanded = expandedBackground === key;
-          
-          return (
-            <button
-              key={key}
-              onClick={() => {
-                const bgKey = key as Background;
-                handleBackgroundSelect(bgKey);
-                setExpandedBackground(expandedBackground === bgKey ? null : bgKey);
-              }}
-              className={`p-5 rounded-lg border-2 transition-all text-left ${
-                isExpanded 
-                  ? 'col-span-1 md:col-span-2 border-purple-500 bg-purple-900/40'
-                  : isSelected
-                    ? 'border-purple-500 bg-purple-900/30'
-                    : 'border-gray-700 hover:border-purple-500 bg-gray-800'
-              }`}
-            >
+    return (
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Background</h2>
+        <p className="text-gray-400 mb-4">Click a background to see full details. Click again to collapse.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {displayOrder.map(([key, bg]) => {
+            const isSelected = character.background === key;
+            const isExpanded = expandedBackground === key;
+            
+            return (
+              <button
+                key={key}
+                onClick={() => {
+                  const bgKey = key as Background;
+                  handleBackgroundSelect(bgKey);
+                  setExpandedBackground(expandedBackground === bgKey ? null : bgKey);
+                }}
+                className={`p-5 rounded-lg border-2 transition-all text-left ${
+                  isExpanded 
+                    ? 'col-span-1 md:col-span-2 lg:col-span-3 border-purple-500 bg-purple-900/40'
+                    : isSelected
+                      ? 'border-purple-500 bg-purple-900/30'
+                      : 'border-gray-700 hover:border-purple-500 bg-gray-800'
+                }`}
+              >
               <div className="flex justify-between items-start mb-2">
                 <h3 className={`font-bold ${isExpanded ? 'text-2xl' : 'text-lg'}`}>{bg.name}</h3>
                 {bg.source && (
