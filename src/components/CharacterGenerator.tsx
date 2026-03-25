@@ -92,7 +92,6 @@ export default function CharacterGenerator() {
   const [step, setStep] = useState<Step>('name');
   const [expandedBackground, setExpandedBackground] = useState<Background | null>(null);
   const [expandedSpecies, setExpandedSpecies] = useState<string | null>(null);
-  const [speciesSelected, setSpeciesSelected] = useState(false);
   
   const handleSpeciesToggle = (speciesName: string) => {
     if (expandedSpecies === speciesName) {
@@ -100,29 +99,31 @@ export default function CharacterGenerator() {
     } else {
       setExpandedSpecies(speciesName);
       
-      // Select this species and auto-select size for single-size species
-      const speciesData = SPECIES[speciesName as Species];
-      if (!character.species || character.species !== speciesName) {
-        setCharacter({ ...character, species: speciesName as Species });
+      // Use functional update to get latest state
+      setCharacter(prev => {
+        const speciesData = SPECIES[speciesName as Species];
         
-        if (speciesData.sizes && speciesData.sizes.length === 1) {
-          setCharacter({ ...character, species: speciesName as Species, selectedSize: speciesData.sizes[0] as "Small" | "Medium" });
-        } else if (!character.selectedSize) {
-          // Set default size for multi-size species (first available)
-          if (speciesData.sizes && speciesData.sizes.length > 0) {
-            setCharacter({ ...character, selectedSize: speciesData.sizes[0] as "Small" | "Medium" });
+        if (!prev.species || prev.species !== speciesName) {
+          if (speciesData.sizes && speciesData.sizes.length === 1) {
+            return { ...prev, species: speciesName as Species, selectedSize: speciesData.sizes[0] as "Small" | "Medium", speciesSelected: true };
+          } else if (!prev.selectedSize) {
+            // Set default size for multi-size species (first available)
+            if (speciesData.sizes && speciesData.sizes.length > 0) {
+              return { ...prev, species: speciesName as Species, selectedSize: speciesData.sizes[0] as "Small" | "Medium", speciesSelected: true };
+            }
+          } else {
+            // Species already has a size selected
+            return { ...prev, species: speciesName as Species, speciesSelected: true };
           }
         }
-      }
+        
+        return prev;
+      });
     }
   };
 
   const handleSizeSelect = (size: "Small" | "Medium") => {
-    // Only set size if a species is currently selected and expanded
-    if (expandedSpecies && character.species) {
-      setCharacter({ ...character, selectedSize: size });
-      setSpeciesSelected(true);
-    }
+    setCharacter(prev => ({ ...prev, selectedSize: size, speciesSelected: true }));
   };
   
   const [slots, setSlots] = useState<AbilitySlot[]>([
@@ -485,25 +486,7 @@ const handleLevelChange = (level: number) => {
               >
                 {/* Condensed Card */}
                 <button
-                  onClick={() => {
-                    handleSpeciesToggle(key);
-                    // Also select this species if not already selected
-                    const speciesKey = key as Species;
-                    const speciesData = SPECIES[speciesKey];
-                    
-                    if (!character.species || character.species !== speciesKey) {
-                      setCharacter({ ...character, species: speciesKey });
-                      
-                      if (speciesData.sizes && speciesData.sizes.length === 1) {
-                        setCharacter({ ...character, species: speciesKey, selectedSize: speciesData.sizes[0] as "Small" | "Medium" });
-                      } else if (!character.selectedSize) {
-                        // Set default size for multi-size species (first available)
-                        if (speciesData.sizes && speciesData.sizes.length > 0) {
-                          setCharacter({ ...character, selectedSize: speciesData.sizes[0] as "Small" | "Medium" });
-                        }
-                      }
-                    }
-                  }}
+                  onClick={() => handleSpeciesToggle(key)}
                   className="w-full p-6 text-left"
                 >
                   <h3 className="text-xl font-bold mb-2">{species.name}</h3>
@@ -1495,10 +1478,10 @@ const getPreparedSpellLimit = () => {
             onClick={nextStep}
             disabled={
               (step === 'name' && !character.name) ||
-              (step === 'species' && !speciesSelected)
+              (step === 'species' && !character.speciesSelected)
             }
             className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-              (step === 'name' && !character.name) || (step === 'species' && !speciesSelected)
+              (step === 'name' && !character.name) || (step === 'species' && !character.speciesSelected)
                 ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                 : 'bg-purple-600 hover:bg-purple-500'
             }`}

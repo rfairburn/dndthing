@@ -9,6 +9,7 @@ export interface Character {
   playerName?: string;
   species?: Species;
   selectedSize?: "Small" | "Medium";
+  speciesSelected?: boolean;
   background: Background;
   classData: ClassEntry;
   level: number;
