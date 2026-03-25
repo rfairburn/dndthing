@@ -6,6 +6,13 @@ React + TypeScript character generator for Dungeons & Dragons 2024 SRD with Wiza
 ## Data Source of Truth
 **http://dnd2024.wikidot.com/** - All spells, subclasses, feats, and rules verified against this official D&D 2024 SRD source.
 
+**Important**: When information in the SRD PDF is incomplete or conflicts with http://dnd2024.wikidot.com/, the wikidot site remains the ultimate authoritative source.
+
+### Artificer Class Note
+Artificer is **NOT included in the official SRD PDF**. For complete Artificer rules, use:
+- Primary source: http://dnd2024.wikidot.com/artificer:main
+- All subclass data comes from wikidot scraping (not PDF)
+
 ---
 
 ## Key Implementation Rules
@@ -21,10 +28,111 @@ React + TypeScript character generator for Dungeons & Dragons 2024 SRD with Wiza
 
 For detailed spellcasting rules and other mechanics, query the SRD PDF directly:
 ```bash
-npm run parse:srd-pdf  # Parse once
+npm run parse:srd-pdf  # Parse once (downloads & parses official PDF)
 npm run query:srd "wizard spellbook"  # Search for specific rules
 npm run query:srd "cantrip progression"
 npm run query:srd "background bonuses"
+```
+
+---
+
+## SRD Query Tool - Advanced Usage Strategies
+
+The `query:srd` tool uses intelligent fallback strategies to find class features and rules. Here's how to get the most out of it:
+
+### 1. Class Feature Searches (Recommended Pattern)
+When searching for a specific class feature, use the pattern `<ClassName> <FeatureName>`:
+```bash
+npm run query:srd "Cleric Spellcasting"    # Finds Cleric spellcasting rules
+npm run query:srd "Wizard Spellbook"       # Finds Wizard spellbook mechanics  
+npm run query:srd "Druid Cantrips"         # Finds Druid cantrip progression
+npm run query:srd "Sorcerer Prepared Spells"  # Finds Sorcerer prepared spell rules
+```
+
+**How it works**: The tool detects the class name, then boosts results containing both the class AND feature-related patterns like:
+- "Level X: Spellcasting/Cantrips/Prepared Spells"
+- "Spell Slots." sections with matching class context
+- "Changing Your Prepared Spells." patterns
+- "Spellcasting Ability." and "Spellcasting Focus." markers
+
+### 2. Generic Rule Searches
+For general mechanics without a specific class:
+```bash
+npm run query:srd "spell slots"            # General spell slot rules
+npm run query:srd "prepared spells"        # Prepared spell mechanics across classes
+npm run query:srd "background bonuses"     # Background stat bonus distribution
+npm run query:srd "species traits"         # Species trait examples
+```
+
+### 3. Fallback Strategy (Automatic)
+The tool automatically triggers enhanced search when:
+- Top 5 results don't contain ALL query keywords together (within 200 chars)
+- You see the warning: `⚠️ Initial search did not find exact matches. Re-scoring with adjusted weights...`
+
+**What happens**: The tool re-scores all sections with boosted weights for:
+- Class feature patterns matching your query terms
+- Table column references (e.g., "Prepared Spells column")
+- "As shown in" table mentions
+- Direct class + feature combinations
+
+### 4. When Fallback Doesn't Find What You Need
+If the tool still doesn't return relevant results:
+
+**Try broader search terms**:
+```bash
+# Instead of specific feature name, try general category
+npm run query:srd "spellcasting"           # All spellcasting rules
+npm run query:srd "cantrips"               # All cantrip mechanics
+```
+
+**Check raw text directly**:
+```bash
+grep -n "ClassName\|FeatureName" rules-reference/srd-raw.txt
+```
+
+**Verify the feature exists in PDF**: Some features may not be in the official SRD (e.g., Artificer class is NOT included)
+
+### 5. Understanding Relevance Scores
+Results show `[Relevance: X]` scores. Higher is better:
+- **2000+**: Direct match with full feature section (class name + all markers present)
+- **1000-1999**: Strong match with most relevant patterns
+- **500-999**: Partial match or related content
+- **<500**: Weak relevance, may be noise
+
+### 6. Best Practices for Rule Verification
+```bash
+# Step 1: Parse PDF once (if not done)
+npm run parse:srd-pdf
+
+# Step 2: Search with class context
+npm run query:srd "ClassName FeatureName"
+
+# Step 3: If unclear, try generic search
+npm run query:srd "FeatureName"
+
+# Step 4: Cross-reference with wikidot if needed
+# Visit http://dnd2024.wikidot.com/ for complete rules
+```
+
+### 7. Known Limitations
+- **Artificer class**: NOT in SRD PDF - must use wikidot source only
+- **Some subclass features**: May not be fully detailed in PDF
+- **Monster stat blocks**: Tool penalizes these to reduce noise when searching for class features
+- **Multi-word queries**: All terms should appear within 200 chars of each other for best results
+
+### 8. Quick Reference - Common Searches
+```bash
+# Spellcasting mechanics by class
+npm run query:srd "ClassName Spellcasting"   # Replace ClassName with: Cleric, Druid, Sorcerer, Wizard, Bard, Warlock, Paladin, Ranger
+
+# Cantrip progression
+npm run query:srd "ClassName Cantrips"       # Find cantrip rules for specific class
+
+# Prepared spell mechanics  
+npm run query:srd "prepared spells of level 1+"  # General prepared spell rules
+
+# Spell slot information
+npm run query:srd "spell slots."              # Spell slot progression and usage
 ```
 
 ---
