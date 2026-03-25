@@ -46,7 +46,7 @@ const config = yargs(hideBin(process.argv))
   .alias('help', 'h')
   .parseSync();
 
-type ScrapeType = 'spells' | 'subclasses' | 'feats' | 'backgrounds' | 'species';
+type ScrapeType = 'spells' | 'subclasses' | 'feats' | 'backgrounds' | 'species' | 'classes';
 
 interface ScrapedItem {
   name: string;
@@ -805,15 +805,32 @@ async function scrapeSpeciesPage(browser: puppeteer.Browser, speciesName: string
       
       const description = descriptionParts.join('\n\n').trim();
       
-      return {
+      const speciesData: any = {
         name: friendlyName,
         source: source || undefined,
         creatureType: creatureType || undefined,
-        size: size || undefined,
         speed: speed || undefined,
         traits: traits.length > 0 ? traits : undefined,
         description: description || undefined
       };
+      
+      // Add size fields if size was found
+      if (size) {
+        speciesData.sizeDescription = size;
+        
+        // Extract available sizes from description in UI order: Small first, then Medium
+        const sizes: string[] = [];
+        if (size.includes('Small')) {
+          sizes.push('Small');
+        }
+        if (size.includes('Medium')) {
+          sizes.push('Medium');
+        }
+        
+        speciesData.sizes = sizes;
+      }
+      
+      return speciesData;
     }, speciesName);
     
     if (!speciesData) {
@@ -1362,6 +1379,223 @@ async function scrapeSpecies(browser: puppeteer.Browser): Promise<void> {
   }
 }
 
+async function getAllClassNames(browser: puppeteer.Browser): Promise<string[]> {
+  console.log(`\n📋 Fetching all classes from http://dnd2024.wikidot.com/class:all...`);
+  
+  const page = await browser.newPage();
+  
+  let html: string;
+  try {
+    const response = await axios.get('http://dnd2024.wikidot.com/class:all', { timeout: 10000 });
+    html = response.data;
+  } catch (error) {
+    console.error(`❌ Failed to fetch class index page`);
+    process.exit(1);
+  }
+  
+  await page.setContent(html);
+  
+  const classLinks = await page.evaluate(() => {
+    const links: string[] = [];
+    
+    // Find all links in the table that point to class pages
+    const allLinks = document.querySelectorAll('a[href^="/artificer:main"], a[href^="/barbarian:main"], a[href^="/bard:main"], a[href^="/cleric:main"], a[href^="/druid:main"], a[href^="/fighter:main"], a[href^="/monk:main"], a[href^="/paladin:main"], a[href^="/ranger:main"], a[href^="/rogue:main"], a[href^="/sorcerer:main"], a[href^="/warlock:main"], a[href^="/wizard:main"]');
+    
+    allLinks.forEach(el => {
+      const href = el.getAttribute('href');
+      if (href) {
+        // Extract class name from URL (e.g., "/barbarian:main" -> "barbarian")
+        const match = href.match(/^\/([a-zA-Z0-9\-]+):main$/);
+        if (match) {
+          links.push(match[1]);
+        }
+      }
+    });
+    
+    return [...new Set(links)];
+  });
+  
+  console.log(`  ✓ Found ${classLinks.length} total classes`);
+  return classLinks;
+}
+
+async function scrapeClasses(browser: puppeteer.Browser): Promise<void> {
+  const successCount = { value: 0 };
+  const warningCount = { value: 0 };
+  const errorCount = { value: 0 };
+  
+  try {
+    // Get all class names first
+    const classNames = await getAllClassNames(browser);
+    
+    if (config.maxItems && config.maxItems < classNames.length) {
+      console.log(`\n⚠️  Limiting to first ${config.maxItems} classes for testing`);
+    } else if (classNames.length > 0) {
+      console.log(`\n📋 Scraping all ${classNames.length} classes...`);
+    }
+    
+    const allClasses: any[] = [];
+    
+    // Process each class
+    for (let i = 0; i < classNames.length; i++) {
+      if (config.maxItems && i >= config.maxItems) break;
+      
+      const className = classNames[i];
+      console.log(`\n[${i + 1}/${classNames.length}] Scraping ${className}...`);
+      
+      try {
+        // Fetch class page HTML
+        let html: string;
+        try {
+          const response = await axios.get(`http://dnd2024.wikidot.com/${className}:main`, { timeout: 15000 });
+          html = response.data;
+        } catch (error) {
+          console.error(`  ❌ Failed to fetch class page`);
+          errorCount.value++;
+          continue;
+        }
+        
+        const page = await browser.newPage();
+        await page.setContent(html);
+        
+        // Parse class data from HTML
+        const classData: any = await page.evaluate(() => {
+          const result: any = {
+            name: '',
+            source: 'Player\'s Handbook',
+            hitDie: 0,
+            primaryAbility: '',
+            savingThrows: [] as string[],
+            skillProficiencies: [] as string[],
+            weaponProficiencies: [] as string[],
+            armorTraining: [] as string[],
+            startingEquipment: '' as string,
+            classFeatures: [] as Array<{level: number; name: string; description: string}>
+          };
+          
+          // Extract source if present (look for "Source:" text)
+          const content = document.querySelector('#page-content');
+          if (content) {
+            const sourceMatch = content.textContent?.match(/Source:\s*([^\n]+)/);
+            if (sourceMatch) {
+              result.source = sourceMatch[1].trim();
+            }
+            
+            // Extract Core Traits table data
+            const coreTraitsTable = document.querySelector('table.wiki-content-table');
+            if (coreTraitsTable) {
+              const rows = coreTraitsTable.querySelectorAll('tr');
+              rows.forEach(row => {
+                const cells = row.querySelectorAll('td, th');
+                if (cells.length >= 2) {
+                  const label = cells[0].textContent?.toLowerCase();
+                  const value = cells[1]?.textContent?.trim();
+                  
+                  if (label.includes('hit point die') && value) {
+                    const hitDieMatch = value.match(/d([0-9]+)/i);
+                    if (hitDieMatch) {
+                      result.hitDie = parseInt(hitDieMatch[1]);
+                    }
+                  } else if (label.includes('primary ability') && value) {
+                    result.primaryAbility = value.toLowerCase();
+                  } else if (label.includes('saving throw') && value) {
+                    // Parse "Strength and Constitution" or "Constitution, Intelligence" format  
+                    const parts = value.replace(/and/gi, ',').split(',').map(s => s.trim().toLowerCase());
+                    result.savingThrows = parts;
+                  } else if (label.includes('skill proficiencies') && value) {
+                    // Parse "Choose 2: X, Y, Z" format
+                    const skillsMatch = value.match(/(?:Choose\s+(\d+):\s*)?([\w,\s]+)/);
+                    if (skillsMatch) {
+                      result.skillProficiencies = skillsMatch[2].split(',').map(s => s.trim());
+                    }
+                  } else if (label.includes('weapon proficiencies') && value) {
+                    result.weaponProficiencies = [value];
+                  } else if (label.includes('armor training') && value) {
+                    result.armorTraining = value.split(',').map(s => s.trim());
+                  } else if (label.includes('starting equipment') && value) {
+                    result.startingEquipment = value;
+                  }
+                }
+              });
+            }
+            
+            // Extract class features from detailed descriptions below the table
+            // Look for "Level X: Feature Name" pattern followed by full description until next Level or end
+            const featureText = content.textContent || '';
+            
+            // Split by "Level N:" to get individual features
+            const levelSplit = featureText.split(/(?=Level \d+:)/);
+            
+            levelSplit.forEach(segment => {
+              // Match "Level X: Feature Name" at start of segment
+              const headerMatch = segment.match(/^Level (\d+):\s*([^\n]+)/);
+              if (!headerMatch) return;
+              
+              const level = parseInt(headerMatch[1]);
+              const name = headerMatch[2].trim();
+              
+              // Get everything after the header line as description
+              const descriptionStartIndex = segment.indexOf('\n');
+              let description = '';
+              
+              if (descriptionStartIndex !== -1) {
+                description = segment.substring(descriptionStartIndex + 1).trim();
+                
+                // Remove trailing text that looks like navigation or footer content
+                const cleanupPatterns = [
+                  /\s*As a \w+.*$/g,  // "As a Level X Character" etc
+                  /\s*Becoming a \w+.*$/g,
+                  /\s*\d+\s*[A-Z].*$/g  // Random trailing text
+                ];
+                
+                cleanupPatterns.forEach(pattern => {
+                  description = description.replace(pattern, '');
+                });
+              }
+              
+              // Clean up - remove extra whitespace but preserve paragraph breaks
+              description = description.replace(/\n\s+/g, '\n').replace(/\s+$/g, '').trim();
+              
+              if (description.length > 10) {  // Only add if we have meaningful content
+                result.classFeatures.push({
+                  level,
+                  name,
+                  description
+                });
+              }
+            });
+          }
+          
+          return result;
+        });
+        
+        classData.name = className;
+        allClasses.push(classData);
+        successCount.value++;
+        console.log(`  ✓ Scraped ${classData.classFeatures.length} features`);
+        
+      } catch (error: any) {
+        console.error(`  ❌ Error: ${error.message}`);
+        if (config.continueOnError) {
+          errorCount.value++;
+        } else {
+          throw error;
+        }
+      }
+    }
+    
+    const outputPath = 'src/data/classes.json';
+    fs.writeFileSync(outputPath, JSON.stringify(allClasses, null, 2));
+    console.log(`\n\n✓ Final output saved to ${outputPath}`);
+    
+    printSummary(successCount.value, warningCount.value, errorCount.value, classNames.length);
+    
+  } catch (error: any) {
+    console.error(`\n❌ Fatal error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
 async function main(): Promise<void> {
   const typesInput = config.types as string;
   
@@ -1373,10 +1607,10 @@ async function main(): Promise<void> {
     scrapeTypes = typesInput.split(',').map(t => t.trim()) as ScrapeType[];
     
     // Validate: check for invalid types
-    const validTypes = ['spells', 'subclasses', 'feats', 'backgrounds', 'species', 'all'];
+    const validTypes = ['spells', 'subclasses', 'feats', 'backgrounds', 'species', 'classes', 'all'];
     for (const type of scrapeTypes) {
       if (!validTypes.includes(type)) {
-        console.error(`\n❌ Error: Invalid type "${type}". Valid options: spells, subclasses, feats, backgrounds, species, all`);
+        console.error(`\n❌ Error: Invalid type "${type}". Valid options: spells, subclasses, feats, backgrounds, species, classes, all`);
         process.exit(1);
       }
     }
@@ -1405,6 +1639,9 @@ async function main(): Promise<void> {
       } else if (type === 'species') {
         console.log('📜 Scraping species...\n');
         await scrapeSpecies(browser);
+      } else if (type === 'classes') {
+        console.log('📜 Scraping classes...\n');
+        await scrapeClasses(browser);
       }
       
       // Add separator between types (except after last)

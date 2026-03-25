@@ -160,16 +160,7 @@ export default function CharacterGenerator() {
     setCharacter(prev => ({ ...prev, name }));
   };
 
-  const handleSpeciesSelect = (speciesKey: Species) => {
-    const speciesData = SPECIES[speciesKey];
-    setCharacter(prev => ({
-      ...prev,
-      species: speciesKey,
-      speed: speciesData.speed,
-      traits: speciesData.traits || []
-    }));
-  };
-
+  
   const handleScoreChangeDirect = (slotIndex: number, score: number) => {
     setSlots(prev => {
       const newSlots = [...prev];
@@ -401,31 +392,59 @@ const handleLevelChange = (level: number) => {
     </div>
   );
 
-  const renderSpeciesStep = () => (
-    <div className="max-w-4xl mx-auto">
-      <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Species</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(SPECIES).map(([key, species]) => (
-          <button
-            key={key}
-            onClick={() => handleSpeciesSelect(key as Species)}
-            className={`p-6 rounded-lg border-2 transition-all text-left ${
-              character.species === key
-                ? 'border-purple-500 bg-purple-900/30'
-                : 'border-gray-700 hover:border-purple-500 bg-gray-800'
-            }`}
-          >
-            <h3 className="text-xl font-bold mb-2">{species.name}</h3>
-            <p className="text-gray-400 text-sm mb-3 line-clamp-2">{species.description}</p>
-            <div className="flex flex-wrap gap-2">
-              <span className="px-2 py-1 bg-purple-700 rounded text-xs">Size: {species.size}</span>
-              <span className="px-2 py-1 bg-blue-700 rounded text-xs">Speed: {species.speed} ft</span>
+  const renderSpeciesStep = () => {
+    const selectedSpeciesData = SPECIES[character.species];
+    const hasMultipleSizes = selectedSpeciesData.sizes && selectedSpeciesData.sizes.length > 1;
+    
+    return (
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Species</h2>
+        
+        {hasMultipleSizes && character.species && !character.selectedSize && (
+          <div className="mb-8 p-6 bg-yellow-900/30 rounded-lg border-2 border-yellow-600">
+            <h3 className="text-xl font-bold mb-4 text-yellow-400">Choose Your Size</h3>
+            <p className="text-gray-300 mb-4">{selectedSpeciesData.sizeDescription}</p>
+            <div className="flex gap-4 justify-center">
+              {selectedSpeciesData.sizes.map(size => (
+                <button
+                  key={size}
+                  onClick={() => setCharacter(prev => ({ ...prev, selectedSize: size as "Small" | "Medium" }))}
+                  className="px-6 py-3 rounded-lg border-2 border-purple-500 bg-purple-900/30 hover:bg-purple-800/50 font-bold text-lg transition-all"
+                >
+                  {size}
+                </button>
+              ))}
             </div>
-          </button>
-        ))}
+          </div>
+        )}
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Object.entries(SPECIES).map(([key, species]) => (
+            <button
+              key={key}
+              onClick={() => {
+                // If switching to a species with single size, auto-set it
+                const newSelectedSize = species.sizes.length === 1 ? species.sizes[0] as "Small" | "Medium" : undefined;
+                setCharacter(prev => ({ ...prev, species: key as Species, selectedSize: newSelectedSize }));
+              }}
+              className={`p-6 rounded-lg border-2 transition-all text-left ${
+                character.species === key
+                  ? 'border-purple-500 bg-purple-900/30'
+                  : 'border-gray-700 hover:border-purple-500 bg-gray-800'
+              }`}
+            >
+              <h3 className="text-xl font-bold mb-2">{species.name}</h3>
+              <p className="text-gray-400 text-sm mb-3 line-clamp-2">{species.description}</p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-2 py-1 bg-purple-700 rounded text-xs">Size: {species.sizes.join(' or ')}</span>
+                <span className="px-2 py-1 bg-blue-700 rounded text-xs">Speed: {species.speed} ft</span>
+              </div>
+            </button>
+          ))}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
 const renderAbilityScoresStep = () => {
   const selectedBackgroundData = BACKGROUNDS[character.background];

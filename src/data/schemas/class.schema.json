@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Class",
+  "description": "D&D 2024 class entries from wikidot.com",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["name", "source", "hitDie", "primaryAbility", "savingThrows", "classFeatures"],
+    "properties": {
+      "name": {
+        "type": "string",
+        "description": "Class name (e.g., 'artificer', 'barbarian')"
+      },
+      "source": {
+        "type": "string",
+        "description": "Source book (e.g., \"Player's Handbook\", 'Eberron: Rising from the Last War')"
+      },
+      "hitDie": {
+        "type": "integer",
+        "minimum": 6,
+        "maximum": 12,
+        "description": "Hit die value (d6-d12)"
+      },
+      "primaryAbility": {
+        "type": "string",
+        "description": "Primary ability score (e.g., 'strength', 'intelligence')"
+      },
+      "savingThrows": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 2,
+        "maxItems": 2,
+        "description": "Saving throw proficiencies (always 2 abilities)"
+      },
+      "skillProficiencies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Available skill proficiencies at level 1"
+      },
+      "weaponProficiencies": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Weapon proficiency categories (e.g., 'Simple weapons')"
+      },
+      "armorTraining": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "description": "Armor training/proficiencies (e.g., 'Light and Medium armor and Shields')"
+      },
+      "startingEquipment": {
+        "type": "string",
+        "description": "Starting equipment options as text description"
+      },
+      "classFeatures": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": ["level", "name", "description"],
+          "properties": {
+            "level": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 20,
+              "description": "Level at which feature is gained"
+            },
+            "name": {
+              "type": "string",
+              "description": "Feature name (e.g., 'Rage', 'Spellcasting')"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 10,
+              "description": "Full description of the feature"
+            }
+          }
+        },
+        "minItems": 5,
+        "description": "List of class features by level"
+      }
+    }
+  },
+  "examples": [
+    {
+      "name": "barbarian",
+      "source": "Player's Handbook",
+      "hitDie": 12,
+      "primaryAbility": "strength",
+      "savingThrows": ["strength", "constitution"],
+      "skillProficiencies": ["Animal Handling", "Athletics", "Intimidation", "Nature", "Perception", "Survival"],
+      "weaponProficiencies": ["Simple and Martial weapons"],
+      "armorTraining": ["Light and Medium armor and Shields"],
+      "startingEquipment": "Choose A or B: (A) Greataxe, 4 Handaxes, Explorer's Pack, and 15 GP; or (B) 75 GP",
+      "classFeatures": [
+        {
+          "level": 1,
+          "name": "Rage",
+          "description": "You can imbue yourself with a primal power called Rage..."
+        },
+        {
+          "level": 1,
+          "name": "Unarmored Defense",
+          "description": "While you aren't wearing any armor, your base Armor Class equals 10 plus your Dexterity and Constitution modifiers."
+        }
+      ]
+    }
+  ]
+}

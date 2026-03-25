@@ -3,7 +3,6 @@
     "name": "Aasimar",
     "source": "Player's Handbook",
     "creatureType": "Humanoid",
-    "size": "Medium (about 4-7 feet tall) or Small (about 2-4 feet tall), chosen when you select this species",
     "speed": 30,
     "traits": [
       {
@@ -47,13 +46,17 @@
         "description": "Your eyes briefly become pools of darkness, and flightless wings sprout from your back temporarily. Creatures other than your allies within 10 feet of you must succeed on a Charisma saving throw (DC 8 plus your Charisma modifier and Proficiency Bonus) or have the Frightened condition until the end of your next turn."
       }
     ],
-    "description": "As an Aasimar, you have these special traits.\n\nHere are the transformation options:"
+    "description": "As an Aasimar, you have these special traits.\n\nHere are the transformation options:",
+    "sizeDescription": "Medium (about 4-7 feet tall) or Small (about 2-4 feet tall), chosen when you select this species",
+    "sizes": [
+      "Small",
+      "Medium"
+    ]
   },
   {
     "name": "Dragonborn",
     "source": "Player's Handbook",
     "creatureType": "Humanoid",
-    "size": "Medium (about 5-7 feet tall)",
     "speed": 30,
     "traits": [
       {
@@ -81,13 +84,16 @@
         "description": "When you reach character level 5, you can channel draconic magic to give yourself temporary flight. As a Bonus Action, you sprout spectral wings on your back that last for 10 minutes or until you retract the wings (no action required) or have the Incapacitated condition. During that time, you have a Fly Speed equal to your Speed. Your wings appear to be made of the same energy as your Breath Weapon. Once you use this trait, you can't use it again until you finish a Long Rest."
       }
     ],
-    "description": "Dragonborn look like wingless, bipedal dragons - scaly, bright-eyed, and thick-boned with horns on their heads - and their coloration and other features are reminiscent of their draconic ancestors.\n\nAs a Dragonborn, you have these special traits.\n\nYou can use this Breath Weapon a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest."
+    "description": "Dragonborn look like wingless, bipedal dragons - scaly, bright-eyed, and thick-boned with horns on their heads - and their coloration and other features are reminiscent of their draconic ancestors.\n\nAs a Dragonborn, you have these special traits.\n\nYou can use this Breath Weapon a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
+    "sizeDescription": "Medium (about 5-7 feet tall)",
+    "sizes": [
+      "Medium"
+    ]
   },
   {
     "name": "Dwarf",
     "source": "Player's Handbook",
     "creatureType": "Humanoid",
-    "size": "Medium (about 4-5 feet tall)",
     "speed": 30,
     "traits": [
       {
@@ -119,13 +125,16 @@
         "description": "As a Bonus Action, you gain Tremorsense with a range of 60 feet for 10 minutes. You must be on a stone surface or touching a stone surface to use this Tremorsense. The stone can be natural or worked."
       }
     ],
-    "description": "As a Dwarf, you have these special traits.\n\nYou can use this Bonus Action a number of times equal to your Proficiency Bonus, and you regain all\n\nexpended uses when you finish a Long Rest."
+    "description": "As a Dwarf, you have these special traits.\n\nYou can use this Bonus Action a number of times equal to your Proficiency Bonus, and you regain all\n\nexpended uses when you finish a Long Rest.",
+    "sizeDescription": "Medium (about 4-5 feet tall)",
+    "sizes": [
+      "Medium"
+    ]
   },
   {
     "name": "Elf",
     "source": "Lorwyn - First Light",
     "creatureType": "Humanoid",
-    "size": "Medium (about 5-6 feet tall)",
     "speed": 30,
     "traits": [
       {
@@ -209,13 +218,16 @@
         "description": "You don't need to sleep, and magic can't put you to sleep. You can finish a Long Rest in 4 hours if you spend those hours in a trancelike meditation, during which you retain consciousness."
       }
     ],
-    "description": "As an Elf, you have these special traits.\n\nIntelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the lineage)."
+    "description": "As an Elf, you have these special traits.\n\nIntelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the lineage).",
+    "sizeDescription": "Medium (about 5-6 feet tall)",
+    "sizes": [
+      "Medium"
+    ]
   },
   {
     "name": "Gnome",
     "source": "Player's Handbook",
     "creatureType": "Humanoid",
-    "size": "Small (about 3-4 feet tall)",
     "speed": 30,
     "traits": [
       {
@@ -251,13 +263,16 @@
         "description": "You know the Mending and Prestidigitation cantrips. In addition, you can spend 10 minutes casting Prestidigitation to create a Tiny clockwork device (AC 5,1 HP), such as a toy, fire starter, or music box. When you create the device, you determine its function by choosing one effect from Prestidigitation; the device produces that effect whenever you or another creature takes a Bonus Action to activate it with a touch. If the chosen effect has options within it, you choose one of those options for the device when you create it. For example, if you choose the spell's ignite-extinguish effect, you determine whether the device ignites or extinguishes fire; the device doesn't do both. You can have three such devices in existence at a time, and each falls apart 8 hours after its creation or when you dismantle it with a touch as a Utilize action."
       }
     ],
-    "description": "As a Gnome, you have these special traits."
+    "description": "As a Gnome, you have these special traits.",
+    "sizeDescription": "Small (about 3-4 feet tall)",
+    "sizes": [
+      "Small"
+    ]
   },
   {
     "name": "Goliath",
     "source": "Player's Handbook",
     "creatureType": "Humanoid",
-    "size": "Medium (about 7-8 feet tall)",
     "speed": 35,
     "traits": [
       {
@@ -281,13 +296,16 @@
         "description": "You have Advantage on any ability check you make to end the Grappled condition. You also count as one size larger when determining your carrying capacity."
       }
     ],
-    "description": "As a Goliath, you have these special traits."
+    "description": "As a Goliath, you have these special traits.",
+    "sizeDescription": "Medium (about 7-8 feet tall)",
+    "sizes": [
+      "Medium"
+    ]
   },
   {
     "name": "Halfling",
     "source": "Lorwyn - First Light",
     "creatureType": "Humanoid",
-    "size": "Small (about 2-3 feet tall)",
     "speed": 30,
     "traits": [
       {
@@ -347,13 +365,16 @@
         "description": "Shadowmoor kithkin have Darkvision with a range of 120 feet."
       }
     ],
-    "description": "As a Halfling, you have these special traits."
+    "description": "As a Halfling, you have these special traits.",
+    "sizeDescription": "Small (about 2-3 feet tall)",
+    "sizes": [
+      "Small"
+    ]
   },
   {
     "name": "Human",
     "source": "Player's Handbook",
     "creatureType": "Humanoid",
-    "size": "Medium (about 4-7 feet tall) or Small (about 2-4 feet tall), chosen when you select this species",
     "speed": 30,
     "traits": [
       {
@@ -377,13 +398,17 @@
         "description": "You gain an Origin feat of your choice. Skilled is recommended."
       }
     ],
-    "description": "As a Human, you have these special traits."
+    "description": "As a Human, you have these special traits.",
+    "sizeDescription": "Medium (about 4-7 feet tall) or Small (about 2-4 feet tall), chosen when you select this species",
+    "sizes": [
+      "Small",
+      "Medium"
+    ]
   },
   {
     "name": "Orc",
     "source": "Player's Handbook",
     "creatureType": "Humanoid",
-    "size": "Medium (about 6-7 feet tall)",
     "speed": 30,
     "traits": [
       {
@@ -407,13 +432,16 @@
         "description": "When you are reduced to 0 Hit Points but not killed outright, you can drop to 1 Hit Point instead. Once you use this trait, you can't do so again until you finish a Long Rest."
       }
     ],
-    "description": "As an Orc, you have these special traits.\n\nYou can use this trait a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Short or Long Rest."
+    "description": "As an Orc, you have these special traits.\n\nYou can use this trait a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Short or Long Rest.",
+    "sizeDescription": "Medium (about 6-7 feet tall)",
+    "sizes": [
+      "Medium"
+    ]
   },
   {
     "name": "Tiefling",
     "source": "Player's Handbook",
     "creatureType": "Humanoid",
-    "size": "Medium (about 4-7 feet tall) or Small (about 3-4 feet tall), chosen when you select this species",
     "speed": 30,
     "traits": [
       {
@@ -453,13 +481,17 @@
         "description": "You know the Thaumaturgy cantrip. When you cast it with this trait, the spell uses the same spellcasting ability you use for your Fiendish Legacy trait."
       }
     ],
-    "description": "As a Tiefling, you have the following special traits.\n\nIntelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the legacy)."
+    "description": "As a Tiefling, you have the following special traits.\n\nIntelligence, Wisdom, or Charisma is your spellcasting ability for the spells you cast with this trait (choose the ability when you select the legacy).",
+    "sizeDescription": "Medium (about 4-7 feet tall) or Small (about 3-4 feet tall), chosen when you select this species",
+    "sizes": [
+      "Small",
+      "Medium"
+    ]
   },
   {
     "name": "Changeling",
     "source": "Eberron - Forge of the Artificer",
     "creatureType": "Fey",
-    "size": "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
     "speed": 30,
     "traits": [
       {
@@ -483,13 +515,17 @@
         "description": "As an action, you can shape-shift to change your appearance and your voice. You determine the specifics of the changes, including your coloration, hair length, and sex. You can also adjust your height and weight and can change your size between Medium and Small. You can make yourself appear as a member of another playable species, though none of your game statistics change. You can’t duplicate the appearance of an individual you’ve never seen, and you must adopt a form that has the same basic arrangement of limbs that you have. This trait doesn’t change your clothing and equipment."
       }
     ],
-    "description": "The first changelings in the multiverse appeared in the Feywild, and the wondrous, mutable essence of that plane lingers in changelings today - even in those who have never set foot in the fey realm.\n\nAs a Changeling, you have these special traits.\n\nWhile shape-shifted with this trait, you have Advantage on Charisma checks.\n\nYou stay in the new form until you take an action to revert to your true form."
+    "description": "The first changelings in the multiverse appeared in the Feywild, and the wondrous, mutable essence of that plane lingers in changelings today - even in those who have never set foot in the fey realm.\n\nAs a Changeling, you have these special traits.\n\nWhile shape-shifted with this trait, you have Advantage on Charisma checks.\n\nYou stay in the new form until you take an action to revert to your true form.",
+    "sizeDescription": "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
+    "sizes": [
+      "Small",
+      "Medium"
+    ]
   },
   {
     "name": "Kalashtar",
     "source": "Eberron - Forge of the Artificer",
     "creatureType": "Aberration",
-    "size": "Medium (about 6–7 feet tall)",
     "speed": 30,
     "traits": [
       {
@@ -517,13 +553,16 @@
         "description": "You can’t be the target of the Dream spell. In addition, when you finish a Long Rest, you gain proficiency in one skill of your choice. This proficiency lasts until you finish another Long Rest."
       }
     ],
-    "description": "As a Kalashtar, you have these special traits."
+    "description": "As a Kalashtar, you have these special traits.",
+    "sizeDescription": "Medium (about 6–7 feet tall)",
+    "sizes": [
+      "Medium"
+    ]
   },
   {
     "name": "Khoravar",
     "source": "Eberron - Forge of the Artificer",
     "creatureType": "Humanoid",
-    "size": "Medium (about 4–6 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
     "speed": 30,
     "traits": [
       {
@@ -555,13 +594,17 @@
         "description": "You gain proficiency in one skill or with one tool of your choice. Whenever you finish a Long Rest, you can replace it with another skill or tool proficiency."
       }
     ],
-    "description": "As a Khoravar, you have these special traits."
+    "description": "As a Khoravar, you have these special traits.",
+    "sizeDescription": "Medium (about 4–6 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
+    "sizes": [
+      "Small",
+      "Medium"
+    ]
   },
   {
     "name": "Shifter",
     "source": "Eberron - Forge of the Artificer",
     "creatureType": "Humanoid",
-    "size": "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
     "speed": 30,
     "traits": [
       {
@@ -601,13 +644,17 @@
         "description": "While shifted, you have Advantage on Wisdom checks. Additionally, no creature within 30 feet of you can have Advantage on an attack roll against you unless you have the Incapacitated condition."
       }
     ],
-    "description": "As a Shifter, you have these special traits.\n\nWhenever you shift, you gain the benefit of one of the following options (choose when you select this species):"
+    "description": "As a Shifter, you have these special traits.\n\nWhenever you shift, you gain the benefit of one of the following options (choose when you select this species):",
+    "sizeDescription": "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
+    "sizes": [
+      "Small",
+      "Medium"
+    ]
   },
   {
     "name": "Warforged",
     "source": "Eberron - Forge of the Artificer",
     "creatureType": "Construct",
-    "size": "Medium (about 6–8 feet tall) or Small (about 3–4 feet tall), chosen when you select this species",
     "speed": 30,
     "traits": [
       {
@@ -639,7 +686,12 @@
         "description": "You don’t gain Exhaustion levels from dehydration, malnutrition, or suffocation."
       }
     ],
-    "description": "As a Warforged, you have these special traits."
+    "description": "As a Warforged, you have these special traits.",
+    "sizeDescription": "Medium (about 6–8 feet tall) or Small (about 3–4 feet tall), chosen when you select this species",
+    "sizes": [
+      "Small",
+      "Medium"
+    ]
   },
   {
     "name": "Boggart",
@@ -782,7 +834,6 @@
     "name": "Lorwyn Changeling",
     "source": "Lorwyn - First Light",
     "creatureType": "Fey",
-    "size": "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
     "speed": 30,
     "traits": [
       {
@@ -814,13 +865,17 @@
         "description": "When you roll Initiative and don’t have Disadvantage on that roll, you can take the Dash action as a Reaction."
       }
     ],
-    "description": "As a Lorwyn Changeling, you have these special traits."
+    "description": "As a Lorwyn Changeling, you have these special traits.",
+    "sizeDescription": "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
+    "sizes": [
+      "Small",
+      "Medium"
+    ]
   },
   {
     "name": "Rimekin",
     "source": "Lorwyn - First Light",
     "creatureType": "Humanoid",
-    "size": "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
     "speed": 30,
     "traits": [
       {
@@ -844,13 +899,17 @@
         "description": "You have Darkvision with a range of 60 feet."
       }
     ],
-    "description": "As a Rimekin, you have these special traits.\n\nIntelligence, Wisdom, or Charisma is your spellcasting ability for these spells (choose the ability when you select this species)."
+    "description": "As a Rimekin, you have these special traits.\n\nIntelligence, Wisdom, or Charisma is your spellcasting ability for these spells (choose the ability when you select this species).",
+    "sizeDescription": "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
+    "sizes": [
+      "Small",
+      "Medium"
+    ]
   },
   {
     "name": "Dhampir",
     "source": "Astarion's Book of Hungers",
     "creatureType": "Humanoid",
-    "size": "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
     "speed": 35,
     "traits": [
       {
@@ -886,6 +945,11 @@
         "description": "You gain a bonus to the next ability check or attack roll you make within the next minute; the bonus is equal to the Piercing damage dealt."
       }
     ],
-    "description": "As a Dhampir, you have these special traits.\n\nIn addition, when you deal this damage to a creature that isn’t a Construct or an Undead, you can empower yourself in one of the following ways:\n\nYou can empower yourself with this trait a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest."
+    "description": "As a Dhampir, you have these special traits.\n\nIn addition, when you deal this damage to a creature that isn’t a Construct or an Undead, you can empower yourself in one of the following ways:\n\nYou can empower yourself with this trait a number of times equal to your Proficiency Bonus, and you regain all expended uses when you finish a Long Rest.",
+    "sizeDescription": "Medium (about 4–7 feet tall) or Small (about 2–4 feet tall), chosen when you select this species",
+    "sizes": [
+      "Small",
+      "Medium"
+    ]
   }
 ]

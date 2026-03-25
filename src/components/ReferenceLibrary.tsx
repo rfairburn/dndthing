@@ -378,7 +378,7 @@ export default function ReferenceLibrary() {
                   {sp.creatureType && (
                     <span className="px-2 py-1 bg-blue-700 rounded text-xs capitalize">{sp.creatureType}</span>
                   )}
-                  <span className="px-2 py-1 bg-green-700 rounded text-xs">Size: {sp.size}</span>
+                  <span className="px-2 py-1 bg-green-700 rounded text-xs">Size: {sp.sizes.join(' or ')}</span>
                   <span className="px-2 py-1 bg-orange-700 rounded text-xs">Speed: {sp.speed} ft</span>
                 </div>
                 <p className="text-gray-400 text-sm mb-4">{sp.description}</p>
