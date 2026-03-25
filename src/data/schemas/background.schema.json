@@ -3,27 +3,60 @@
   "title": "Background",
   "description": "D&D 2024 background entry from wikidot.com",
   "type": "object",
-  "required": ["name"],
+  "required": ["name", "source"],
   "properties": {
     "name": {
       "type": "string",
-      "description": "Friendly name of the background (e.g., 'Acolyte')",
-      "minLength": 1
-    },
-    "description": {
-      "type": "string",
-      "description": "Full description text including ability scores, feat, skills, tools, and equipment"
+      "description": "Friendly name of the background (e.g., 'Acolyte')"
     },
     "source": {
       "type": "string",
-      "description": "Source book (e.g., 'Player's Handbook')"
+      "description": "Source book (e.g., \"Player's Handbook\", 'Eberron - Forge of the Artificer')"
+    },
+    "abilityScores": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of ability scores (e.g., ['Dexterity', 'Intelligence', 'Wisdom'])"
+    },
+    "feat": {
+      "type": "string",
+      "description": "Feat gained from background (e.g., 'Skilled')"
+    },
+    "skillProficiencies": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of skill proficiencies (e.g., ['History', 'Survival'])"
+    },
+    "toolProficiency": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of tool proficiencies (e.g., [\"Cartographer's Tools\"])"
+    },
+    "equipment": {
+      "type": "string",
+      "description": "Equipment text, typically 'Choose A or B: (A) ...; or (B) ...'"
+    },
+    "description": {
+      "type": "string",
+      "description": "Main descriptive paragraph about the background"
     }
   },
   "examples": [
     {
-      "name": "Acolyte",
-      "description": "You devoted yourself to service in a temple, either nestled in a town or secluded in a sacred grove. There you performed rites in honor of a god or pantheon.\n\n**Ability Scores:** Intelligence, Wisdom, Charisma\n**Feat:** Magic Initiate (Cleric)\n**Skill Proficiencies:** Insight and Religion\n**Tool Proficiency:** Calligrapher's Supplies\n**Equipment:** Choose A or B: (A) Calligrapher's Supplies, Book (prayers), Holy Symbol, Parchment (10 sheets), Robe, 8 GP; or (B) 50 GP",
-      "source": "Player's Handbook"
+      "name": "Archaeologist",
+      "source": "Eberron - Forge of the Artificer",
+      "abilityScores": ["Dexterity", "Intelligence", "Wisdom"],
+      "feat": "Skilled",
+      "skillProficiencies": ["History", "Survival"],
+      "toolProficiency": ["Cartographer's Tools"],
+      "equipment": "Choose A or B: (A) Cartographer's Tools, Bullseye Lantern, Map, Map or Scroll Case, Shovel, Tent, Traveler's Clothes, 17 GP; or (B) 50 GP",
+      "description": "You've made a lifelong study of the lost and fallen cultures of the past, visiting their ruins, deciphering their written records, and examining their surviving masterworks. Perhaps you studied at Morgrave University or a similar institution, supplementing your time in the library with fieldwork amid ancient ruins in remote locations."
     }
   ]
 }

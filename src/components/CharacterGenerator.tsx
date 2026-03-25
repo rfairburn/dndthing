@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import type { Character, Race, Background, Subclass, ClassType } from '../types';
-import { RACES } from '../data/racesAndBackgrounds';
-import { BACKGROUNDS } from '../data/racesAndBackgrounds';
+import type { Character, Species, Background, Subclass, ClassType } from '../types';
+import { SPECIES } from '../data/species';
+import { BACKGROUNDS } from '../data/backgrounds';
 import { CLASSES } from '../data/classes';
 import { getSpellsForClass } from '../data/spells';
 import { calculateAbilityModifier } from '../utils/calculations';
@@ -78,7 +78,7 @@ const SUBCLASS_NAMES: Record<Subclass, string> = {
   "wizard_school_of_illusion": "School of Illusion"
 };
 
-type Step = 'name' | 'race' | 'ability_scores' | 'class' | 'subclass' | 'spells' | 'background' | 'inventory' | 'review';
+type Step = 'name' | 'species' | 'background' | 'ability_scores' | 'class' | 'subclass' | 'spells' | 'inventory' | 'review';
 
 const standardArray = [15, 14, 13, 12, 10, 8];
 const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as const;
@@ -90,6 +90,41 @@ type AbilitySlot = {
 
 export default function CharacterGenerator() {
   const [step, setStep] = useState<Step>('name');
+  const [expandedBackground, setExpandedBackground] = useState<Background | null>(null);
+  const [expandedSpecies, setExpandedSpecies] = useState<string | null>(null);
+  
+  const handleSpeciesToggle = (speciesName: string) => {
+    if (expandedSpecies === speciesName) {
+      setExpandedSpecies(null);
+    } else {
+      setExpandedSpecies(speciesName);
+      
+      // Use functional update to get latest state
+      setCharacter(prev => {
+        const speciesData = SPECIES[speciesName as Species];
+        
+        if (!prev.species || prev.species !== speciesName) {
+          if (speciesData.sizes && speciesData.sizes.length === 1) {
+            return { ...prev, species: speciesName as Species, selectedSize: speciesData.sizes[0] as "Small" | "Medium", speciesSelected: true };
+          } else if (!prev.selectedSize) {
+            // Set default size for multi-size species (first available)
+            if (speciesData.sizes && speciesData.sizes.length > 0) {
+              return { ...prev, species: speciesName as Species, selectedSize: speciesData.sizes[0] as "Small" | "Medium", speciesSelected: true };
+            }
+          } else {
+            // Species already has a size selected
+            return { ...prev, species: speciesName as Species, speciesSelected: true };
+          }
+        }
+        
+        return prev;
+      });
+    }
+  };
+
+  const handleSizeSelect = (size: "Small" | "Medium") => {
+    setCharacter(prev => ({ ...prev, selectedSize: size, speciesSelected: true }));
+  };
   
   const [slots, setSlots] = useState<AbilitySlot[]>([
     { ability: 'strength', value: 15 },
@@ -99,6 +134,15 @@ export default function CharacterGenerator() {
     { ability: 'wisdom', value: 10 },
     { ability: 'charisma', value: 8 }
   ]);
+
+  const [backgroundBonuses, setBackgroundBonuses] = useState<Record<typeof abilities[number], number>>({
+    strength: 0,
+    dexterity: 0,
+    constitution: 0,
+    intelligence: 0,
+    wisdom: 0,
+    charisma: 0
+  });
 
   const getAbilityScoresFromSlots = (): Record<typeof abilities[number], number> => {
     return slots.reduce((acc, slot) => {
@@ -113,7 +157,6 @@ export default function CharacterGenerator() {
     id: '',
     name: '',
     playerName: '',
-    race: "human" as Race,
     background: "acolyte" as Background,
     classData: { class: "fighter" },
     level: 1,
@@ -150,17 +193,7 @@ export default function CharacterGenerator() {
     setCharacter(prev => ({ ...prev, name }));
   };
 
-  const handleRaceSelect = (raceKey: Race) => {
-    const raceData = RACES[raceKey];
-    setCharacter(prev => ({
-      ...prev,
-      race: raceKey,
-      speed: raceData.speed,
-      languages: [...(raceData.languages || ["Common"])],
-      traits: raceData.traits || []
-    }));
-  };
-
+  
   const handleScoreChangeDirect = (slotIndex: number, score: number) => {
     setSlots(prev => {
       const newSlots = [...prev];
@@ -228,6 +261,17 @@ export default function CharacterGenerator() {
 
   const handleBackgroundSelect = (backgroundKey: Background) => {
     const backgroundData = BACKGROUNDS[backgroundKey];
+    
+    // Reset background bonuses when selecting new background
+    setBackgroundBonuses({
+      strength: 0,
+      dexterity: 0,
+      constitution: 0,
+      intelligence: 0,
+      wisdom: 0,
+      charisma: 0
+    });
+    
     setCharacter(prev => ({
       ...prev,
       background: backgroundKey,
@@ -240,6 +284,40 @@ export default function CharacterGenerator() {
         { name: backgroundData.feature.name, description: backgroundData.feature.description, source: "background" as const }
       ]
     }));
+  };
+
+  const incrementBackgroundBonus = (ability: typeof abilities[number]) => {
+    setBackgroundBonuses(prev => {
+      const currentTotal = Object.values(prev).reduce((sum, val) => sum + val, 0);
+      
+      // Check if this ability is already at max (+2)
+      if (prev[ability] >= 2) {
+        return prev;
+      }
+      
+      // Check if we've reached total max (+3)
+      if (currentTotal >= 3) {
+        return prev;
+      }
+      
+      return {
+        ...prev,
+        [ability]: prev[ability] + 1
+      };
+    });
+  };
+
+  const decrementBackgroundBonus = (ability: typeof abilities[number]) => {
+    setBackgroundBonuses(prev => {
+      if (prev[ability] <= 0) {
+        return prev;
+      }
+      
+      return {
+        ...prev,
+        [ability]: prev[ability] - 1
+      };
+    });
   };
 
 const handleLevelChange = (level: number) => {
@@ -312,7 +390,7 @@ const handleLevelChange = (level: number) => {
   };
 
   const nextStep = () => {
-    const steps: Step[] = ['name', 'race', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
+    const steps: Step[] = ['name', 'species', 'background', 'ability_scores', 'class', 'subclass', 'spells', 'inventory', 'review'];
     const currentIndex = steps.indexOf(step);
     if (currentIndex < steps.length - 1) {
       setStep(steps[currentIndex + 1]);
@@ -320,7 +398,7 @@ const handleLevelChange = (level: number) => {
   };
 
   const prevStep = () => {
-    const steps: Step[] = ['name', 'race', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
+    const steps: Step[] = ['name', 'species', 'background', 'ability_scores', 'class', 'subclass', 'spells', 'inventory', 'review'];
     const currentIndex = steps.indexOf(step);
     if (currentIndex > 0) {
       setStep(steps[currentIndex - 1]);
@@ -347,49 +425,205 @@ const handleLevelChange = (level: number) => {
     </div>
   );
 
-  const renderRaceStep = () => (
-    <div className="max-w-4xl mx-auto">
-      <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Race</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(RACES).map(([key, race]) => (
-          <button
-            key={key}
-            onClick={() => handleRaceSelect(key as Race)}
-            className={`p-6 rounded-lg border-2 transition-all text-left ${
-              character.race === key
-                ? 'border-purple-500 bg-purple-900/30'
-                : 'border-gray-700 hover:border-purple-500 bg-gray-800'
-            }`}
-          >
-            <h3 className="text-xl font-bold mb-2">{race.name}</h3>
-            <p className="text-gray-400 text-sm mb-3">{race.description}</p>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(race.abilityScoreIncrease || {}).map(([stat, val]) => (
-                <span key={stat} className="px-2 py-1 bg-purple-700 rounded text-xs">
-                  +{val as number} {stat.charAt(0).toUpperCase() + stat.slice(1)}
-                </span>
-              ))}
-            </div>
-          </button>
-        ))}
+  const renderSpeciesStep = () => {
+    // Get species array, potentially reordered if expanded card needs to move left before expanding
+    const speciesEntries = Object.entries(SPECIES);
+    let displayOrder = [...speciesEntries];
+    
+    if (expandedSpecies) {
+      const expandedIndex = speciesEntries.findIndex(([key]) => key === expandedSpecies);
+      
+      // Move selected card to leftmost position of its row before expanding
+      // Row starts at: expandedIndex - (expandedIndex % 3)
+      const rowStart = expandedIndex - (expandedIndex % 3);
+      
+      if (rowStart !== expandedIndex) {
+        // Build new order: cards before row, selected card, then remaining cards in row
+        displayOrder = [];
+        
+        // Add all cards before this row
+        for (let i = 0; i < rowStart; i++) {
+          displayOrder.push(speciesEntries[i]);
+        }
+        
+        // Add the selected card first in its row
+        displayOrder.push(speciesEntries[expandedIndex]);
+        
+        // Add remaining cards in this row (excluding the selected one)
+        for (let i = rowStart; i <= expandedIndex; i++) {
+          if (i !== expandedIndex) {
+            displayOrder.push(speciesEntries[i]);
+          }
+        }
+        
+        // Add all cards after this row
+        for (let i = expandedIndex + 1; i < speciesEntries.length; i++) {
+          displayOrder.push(speciesEntries[i]);
+        }
+      }
+    }
+
+    return (
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Species</h2>
+        <p className="text-gray-400 mb-4">Click a species to see full details and size options. Click again to collapse.</p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {displayOrder.map(([key, species]) => {
+            const isExpanded = expandedSpecies === key;
+            const isSelected = character.species === key;
+            
+            return (
+              <div
+                key={key}
+                className={`rounded-lg border-2 transition-all ${
+                  isExpanded 
+                    ? 'col-span-1 md:col-span-2 lg:col-span-3 border-purple-500 bg-purple-900/40'
+                    : isSelected
+                      ? 'border-purple-500 bg-purple-900/30'
+                      : 'border-gray-700 hover:border-purple-500 bg-gray-800'
+                }`}
+              >
+                {/* Condensed Card */}
+                <button
+                  onClick={() => handleSpeciesToggle(key)}
+                  className="w-full p-6 text-left"
+                >
+                  <h3 className="text-xl font-bold mb-2">{species.name}</h3>
+                  <p className="text-gray-400 text-sm mb-3 line-clamp-2">{species.description}</p>
+                  
+                  {/* Show currently selected size */}
+                  {isSelected && character.selectedSize ? (
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2 py-1 bg-purple-700 rounded text-xs">Size: {character.selectedSize}</span>
+                      <span className="px-2 py-1 bg-blue-700 rounded text-xs">Speed: {species.speed} ft</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2 py-1 bg-purple-700 rounded text-xs">Size: {species.sizes.join(' or ')}</span>
+                      <span className="px-2 py-1 bg-blue-700 rounded text-xs">Speed: {species.speed} ft</span>
+                    </div>
+                  )}
+                </button>
+                
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="p-6 pt-0 border-t border-gray-700">
+                    <p className="text-gray-300 mb-4">{species.description}</p>
+                    
+                    {/* Size Selection Section */}
+                    <div className="mb-4">
+                      <h4 className="font-bold text-sm text-gray-400 mb-2">Size Options</h4>
+                      {species.sizeDescription && (
+                        <p className="text-gray-300 text-sm mb-3">{species.sizeDescription}</p>
+                      )}
+                      
+                      {/* Size buttons */}
+                      <div className="flex flex-wrap gap-2">
+                        {species.sizes.map(size => {
+                          const isSizeSelected = character.selectedSize === size;
+                          
+                          return (
+                            <button
+                              key={size}
+                              onClick={() => handleSizeSelect(size as "Small" | "Medium")}
+                              className={`px-3 py-2 rounded text-sm border-2 ${
+                                isSizeSelected && isSelected
+                                  ? 'border-purple-500 bg-purple-700 font-bold'
+                                  : 'border-gray-600 hover:border-purple-400 bg-gray-700'
+                              }`}
+                            >
+                              Size: {size}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* Traits */}
+                    {species.traits && species.traits.length > 0 && (
+                      <div>
+                        <h4 className="font-bold text-sm text-gray-400 mb-2">Traits</h4>
+                        <ul className="text-sm space-y-2">
+                          {species.traits.map((trait, index) => (
+                            <li key={index} className="text-gray-300">
+                              <span className="font-bold">{trait.name}</span>: {trait.description}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
 const renderAbilityScoresStep = () => {
-  const raceData = RACES[character.race];
-  
+  const selectedBackgroundData = BACKGROUNDS[character.background];
+  const abilityScoresList = (selectedBackgroundData.abilityScores || []).map(a => a.toLowerCase());
+  const hasBackgroundBonuses = abilityScoresList.length > 0;
+  const totalBonusApplied = Object.values(backgroundBonuses).reduce((sum, val) => sum + val, 0);
+
   return (
     <div className="max-w-4xl mx-auto">
       <h2 className="text-3xl font-bold mb-6 text-purple-400">Assign Ability Scores</h2>
+      
+      {hasBackgroundBonuses && (
+        <div className="mb-8 p-6 bg-yellow-900/30 rounded-lg border-2 border-yellow-600">
+          <h3 className="text-xl font-bold mb-4 text-yellow-400">Background Stat Bonuses</h3>
+          <p className="text-gray-300 mb-4">Your {selectedBackgroundData.name} background gives you +3 total stat points. Use the counters below to distribute them (max +2 per ability, max +3 total):</p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {abilityScoresList.map(ability => {
+              const currentBonus = backgroundBonuses[ability as typeof abilities[number]] || 0;
+              
+              return (
+                <div key={ability} className="p-4 bg-gray-800 rounded-lg">
+                  <div className="text-sm capitalize text-gray-400 mb-2">{ability}</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      onClick={() => decrementBackgroundBonus(ability as typeof abilities[number])}
+                      disabled={currentBonus <= 0}
+                      className="w-10 h-10 rounded-lg bg-gray-700 hover:bg-gray-600 font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      -
+                    </button>
+                    <div className={`text-2xl font-bold px-4 py-1 rounded ${currentBonus > 0 ? 'bg-yellow-700 text-white' : 'bg-gray-700'}`}>
+                      {currentBonus > 0 ? `+${currentBonus}` : '+0'}
+                    </div>
+                    <button
+                      onClick={() => incrementBackgroundBonus(ability as typeof abilities[number])}
+                      disabled={currentBonus >= 2 || totalBonusApplied >= 3}
+                      className="w-10 h-10 rounded-lg bg-gray-700 hover:bg-gray-600 font-bold disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 text-center">
+            <span className="text-sm text-gray-400">Total bonuses applied: </span>
+            <span className={`font-bold ${totalBonusApplied === 3 ? 'text-green-400' : 'text-yellow-400'}`}>+{totalBonusApplied}/+3</span>
+          </div>
+        </div>
+      )}
+
       <p className="text-gray-400 mb-8">Click a value to assign it. Each value can only be used once.</p>
 
       {/* Ability Score Slots */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {slots.map((slot, index) => {
           const baseValue = slot.value || 0;
-          const racialBonus = raceData.abilityScoreIncrease?.[slot.ability] as number | undefined;
-          const totalValue = baseValue + (racialBonus || 0);
+          const bonusValue = backgroundBonuses[slot.ability] || 0;
+          const totalValue = baseValue + bonusValue;
           
           return (
             <div key={slot.ability} className="p-6 bg-gray-800 rounded-lg border-2 border-purple-600">
@@ -399,13 +633,15 @@ const renderAbilityScoresStep = () => {
               <div className="mb-4 p-4 bg-gray-700 rounded-lg text-center">
                 {baseValue !== 0 ? (
                   <>
-                    <div className="text-sm text-gray-400 mb-1">Total Score</div>
+                    <div className="text-sm text-gray-400 mb-1">Base Score</div>
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-3xl font-bold">{totalValue}</span>
-                      {racialBonus && (
-                        <span className="text-xs bg-purple-700 px-2 py-1 rounded">
-                          +{baseValue} ({slot.ability}) {racialBonus > 0 ? '+' : ''}{racialBonus}
-                        </span>
+                      <span className="text-3xl font-bold">{baseValue}</span>
+                      {bonusValue > 0 && (
+                        <>
+                          <span className="text-yellow-400 text-xl">+{bonusValue}</span>
+                          <span className="text-gray-500">=</span>
+                          <span className="text-green-400 text-3xl font-bold">{totalValue}</span>
+                        </>
                       )}
                     </div>
                   </>
@@ -457,15 +693,23 @@ const renderAbilityScoresStep = () => {
           {abilities.map((ability) => {
             const slot = slots.find(s => s.ability === ability);
             const baseValue = slot?.value || 0;
-            const racialBonus = raceData.abilityScoreIncrease?.[ability] as number | undefined;
-            const totalValue = baseValue + (racialBonus || 0);
+            const bonusValue = backgroundBonuses[ability] || 0;
+            const totalValue = baseValue + bonusValue;
             
             return (
               <div key={ability} className="p-3 bg-gray-800 rounded text-center">
                 <div className="text-xs capitalize text-gray-400 mb-1">{ability}</div>
                 {slot && slot.value !== null ? (
                   <>
-                    <div className="text-xl font-bold">{totalValue}</div>
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-lg font-bold">{baseValue}</span>
+                      {bonusValue > 0 && (
+                        <>
+                          <span className="text-yellow-400 text-sm">+{bonusValue}</span>
+                          <span className="text-green-400 text-xl font-bold">= {totalValue}</span>
+                        </>
+                      )}
+                    </div>
                     <div className="text-sm text-purple-400">+{calculateAbilityModifier(totalValue)}</div>
                   </>
                 ) : (
@@ -640,35 +884,24 @@ const renderAbilityScoresStep = () => {
       return 6 + (character.level - 1) * 2;
     };
 
-    const getAbilityScoreWithRacialBonus = (ability: string): number => {
-      const baseScore = character.abilityScores[ability as keyof typeof character.abilityScores] || 10;
-      const raceData = RACES[character.race];
-      const racialBonus = raceData.abilityScoreIncrease?.[ability] as number | undefined;
-      return baseScore + (racialBonus || 0);
-    };
-
 const getPreparedSpellLimit = () => {
       if (spellcastingInfo.spellsKnown) {
         return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
       }
       if (spellcastingInfo.spellsPrepared && character.abilityScores.intelligence !== undefined) {
-        const totalInt = getAbilityScoreWithRacialBonus('intelligence');
-        const abilityMod = calculateAbilityModifier(totalInt);
+        const abilityMod = calculateAbilityModifier(character.abilityScores.intelligence);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
       if (spellcastingInfo.spellsPrepared && character.abilityScores.wisdom !== undefined) {
-        const totalWis = getAbilityScoreWithRacialBonus('wisdom');
-        const abilityMod = calculateAbilityModifier(totalWis);
+        const abilityMod = calculateAbilityModifier(character.abilityScores.wisdom);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
       if (spellcastingInfo.spellsPrepared && character.abilityScores.charisma !== undefined) {
-        const totalCha = getAbilityScoreWithRacialBonus('charisma');
-        const abilityMod = calculateAbilityModifier(totalCha);
+        const abilityMod = calculateAbilityModifier(character.abilityScores.charisma);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
       if (spellcastingInfo.spellsPrepared && character.abilityScores.strength !== undefined) {
-        const totalStr = getAbilityScoreWithRacialBonus('strength');
-        const abilityMod = calculateAbilityModifier(totalStr);
+        const abilityMod = calculateAbilityModifier(character.abilityScores.strength);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
       return 0;
@@ -823,32 +1056,175 @@ const getPreparedSpellLimit = () => {
     );
   };
 
-  const renderBackgroundStep = () => (
-    <div className="max-w-4xl mx-auto">
-      <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Background</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(BACKGROUNDS).map(([key, bg]) => (
-          <button
-            key={key}
-            onClick={() => handleBackgroundSelect(key as Background)}
-            className={`p-6 rounded-lg border-2 transition-all text-left ${
-              character.background === key
-                ? 'border-purple-500 bg-purple-900/30'
-                : 'border-gray-700 hover:border-purple-500 bg-gray-800'
-            }`}
-          >
-            <h3 className="text-xl font-bold mb-2">{bg.name}</h3>
-            <p className="text-gray-400 text-sm mb-3">{bg.description}</p>
-            <div className="flex flex-wrap gap-1">
-              {bg.skillProficiencies.map(skill => (
-                <span key={skill} className="px-2 py-1 bg-purple-700 rounded text-xs">{skill}</span>
-              ))}
-            </div>
-          </button>
-        ))}
+  const renderBackgroundStep = () => {
+    // Get backgrounds array, potentially reordered if expanded card needs to move left before expanding
+    const backgroundsEntries = Object.entries(BACKGROUNDS);
+    let displayOrder = [...backgroundsEntries];
+    
+    if (expandedBackground) {
+      const expandedIndex = backgroundsEntries.findIndex(([key]) => key === expandedBackground);
+      
+      // Move selected card to leftmost position of its row before expanding
+      // Row starts at: expandedIndex - (expandedIndex % 3)
+      const rowStart = expandedIndex - (expandedIndex % 3);
+      
+      if (rowStart !== expandedIndex) {
+        // Build new order: cards before row, selected card, then remaining cards in row
+        displayOrder = [];
+        
+        // Add all cards before this row
+        for (let i = 0; i < rowStart; i++) {
+          displayOrder.push(backgroundsEntries[i]);
+        }
+        
+        // Add the selected card first in its row
+        displayOrder.push(backgroundsEntries[expandedIndex]);
+        
+        // Add remaining cards in this row (excluding the selected one)
+        for (let i = rowStart; i <= expandedIndex; i++) {
+          if (i !== expandedIndex) {
+            displayOrder.push(backgroundsEntries[i]);
+          }
+        }
+        
+        // Add all cards after this row
+        for (let i = expandedIndex + 1; i < backgroundsEntries.length; i++) {
+          displayOrder.push(backgroundsEntries[i]);
+        }
+      }
+    }
+
+    return (
+      <div className="max-w-6xl mx-auto">
+        <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Background</h2>
+        <p className="text-gray-400 mb-4">Click a background to see full details. Click again to collapse.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {displayOrder.map(([key, bg]) => {
+            const isSelected = character.background === key;
+            const isExpanded = expandedBackground === key;
+            
+            return (
+              <button
+                key={key}
+                onClick={() => {
+                  const bgKey = key as Background;
+                  handleBackgroundSelect(bgKey);
+                  setExpandedBackground(expandedBackground === bgKey ? null : bgKey);
+                }}
+                className={`p-5 rounded-lg border-2 transition-all text-left ${
+                  isExpanded 
+                    ? 'col-span-1 md:col-span-2 lg:col-span-3 border-purple-500 bg-purple-900/40'
+                    : isSelected
+                      ? 'border-purple-500 bg-purple-900/30'
+                      : 'border-gray-700 hover:border-purple-500 bg-gray-800'
+                }`}
+              >
+              <div className="flex justify-between items-start mb-2">
+                <h3 className={`font-bold ${isExpanded ? 'text-2xl' : 'text-lg'}`}>{bg.name}</h3>
+                {bg.source && (
+                  <span className="text-xs text-purple-400 bg-purple-900/50 px-2 py-1 rounded">{bg.source}</span>
+                )}
+              </div>
+              
+              {(bg.abilityScores && bg.abilityScores.length > 0) || bg.feat ? (
+                <div className="mb-3 space-y-1">
+                  {bg.abilityScores && bg.abilityScores.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {bg.abilityScores.map(score => (
+                        <span key={score} className="px-2 py-0.5 bg-yellow-700 rounded text-xs capitalize">{score}</span>
+                      ))}
+                    </div>
+                  )}
+                  {bg.feat && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-400">Feat:</span>
+                      <span className="text-xs font-semibold text-green-400">{bg.feat}</span>
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              <p className={`text-gray-400 mb-3 ${isExpanded ? 'text-base' : 'text-sm line-clamp-2'}`}>{bg.description}</p>
+              
+              {isExpanded && (
+                <div className="space-y-3 pt-3 border-t border-purple-700/50 mt-3">
+                  <div>
+                    <span className="text-xs text-gray-500 mr-2 uppercase font-semibold">Skills:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {bg.skillProficiencies.map(skill => (
+                        <span key={skill} className="px-2 py-1 bg-purple-700 rounded text-sm">{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {bg.toolProficiencies && bg.toolProficiencies.length > 0 && (
+                    <div>
+                      <span className="text-xs text-gray-500 mr-2 uppercase font-semibold">Tools:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {bg.toolProficiencies.map(tool => (
+                          <span key={tool} className="px-2 py-1 bg-blue-700 rounded text-sm">{tool}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div>
+                    <span className="text-xs text-gray-500 mr-2 uppercase font-semibold">Equipment:</span>
+                    <ul className="text-sm text-gray-300 space-y-1 ml-4">
+                      {bg.equipment.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2">
+                          <span className="text-green-500 mt-1">•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  {bg.feature.name && (
+                    <div className="p-3 bg-gray-800 rounded-lg">
+                      <h4 className="font-semibold mb-2 text-purple-400">{bg.feature.name}</h4>
+                      <p className="text-sm text-gray-300 whitespace-pre-wrap">{bg.feature.description}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!isExpanded && (
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-xs text-gray-500 mr-2">Skills:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {bg.skillProficiencies.map(skill => (
+                        <span key={skill} className="px-1.5 py-0.5 bg-purple-700 rounded text-xs">{skill}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {bg.toolProficiencies && bg.toolProficiencies.length > 0 && (
+                    <div>
+                      <span className="text-xs text-gray-500 mr-2">Tools:</span>
+                      <div className="flex flex-wrap gap-1">
+                        {bg.toolProficiencies.map(tool => (
+                          <span key={tool} className="px-1.5 py-0.5 bg-blue-700 rounded text-xs">{tool}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {bg.feature.name && (
+                    <div className="pt-2 mt-2 border-t border-gray-700">
+                      <span className="text-xs font-semibold text-purple-400">{bg.feature.name}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
+};
 
   const renderReviewStep = () => {
     const classKey = character.classData.class;
@@ -876,22 +1252,13 @@ const getPreparedSpellLimit = () => {
       return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
     };
 
-    const getAbilityScoreWithRacialBonus = (ability: string): number => {
-        const baseScore = character.abilityScores[ability as keyof typeof character.abilityScores] || 10;
-        const raceData = RACES[character.race];
-        const racialBonus = raceData.abilityScoreIncrease?.[ability] as number | undefined;
-        return baseScore + (racialBonus || 0);
-      };
-
-      const getPreparedSpellLimit = () => {
+    const getPreparedSpellLimit = () => {
         if (isWizard && spellcastingInfo?.spellsPrepared) {
-          const totalInt = getAbilityScoreWithRacialBonus('intelligence');
-          const abilityMod = calculateAbilityModifier(totalInt);
+          const abilityMod = calculateAbilityModifier(character.abilityScores.intelligence);
           return spellcastingInfo.spellsPrepared(abilityMod, character.level);
         }
         if (spellcastingInfo?.spellsPrepared && character.abilityScores.charisma !== undefined) {
-          const totalCha = getAbilityScoreWithRacialBonus('charisma');
-          const abilityMod = calculateAbilityModifier(totalCha);
+          const abilityMod = calculateAbilityModifier(character.abilityScores.charisma);
           return spellcastingInfo.spellsPrepared(abilityMod, character.level);
         }
         if (!spellcastingInfo?.spellsKnown) return 0;
@@ -920,15 +1287,15 @@ const getPreparedSpellLimit = () => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="p-3 bg-gray-700 rounded text-center">
-            <div className="text-sm text-gray-400">{RACES[character.race].name}</div>
-          </div>
+<div className="p-3 bg-gray-700 rounded text-center">
+              <div className="text-sm text-gray-400">{character.species ? SPECIES[character.species].name : 'Not selected'}</div>
+            </div>
           <div className="p-3 bg-gray-700 rounded text-center">
             <div className="text-sm text-gray-400 capitalize">{character.classData.class.replace('_', ' ')}</div>
           </div>
-          <div className="p-3 bg-gray-700 rounded text-center">
-            <div className="text-sm text-gray-400">{BACKGROUNDS[character.background].name}</div>
-          </div>
+<div className="p-3 bg-gray-700 rounded text-center">
+              <div className="text-sm text-gray-400">{character.species ? SPECIES[character.species].name : 'Not selected'}</div>
+            </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
@@ -1066,14 +1433,14 @@ const getPreparedSpellLimit = () => {
   );
 };
 
-  const stepNames: Step[] = ['name', 'race', 'ability_scores', 'class', 'subclass', 'spells', 'background', 'inventory', 'review'];
+  const stepNames: Step[] = ['name', 'species', 'background', 'ability_scores', 'class', 'subclass', 'spells', 'inventory', 'review'];
 
   return (
     <div className="max-w-6xl mx-auto">
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between mb-2">
-          {['Name', 'Race', 'Abilities', 'Class', 'Subclass', 'Spells', 'Background', 'Inventory', 'Review'].map((label, idx) => {
+          {['Name', 'Species', 'Background', 'Abilities', 'Class', 'Subclass', 'Spells', 'Inventory', 'Review'].map((label, idx) => {
             const currentStepIndex = stepNames.indexOf(step);
             const clickedStepIndex = idx;
             const isCompleted = clickedStepIndex <= currentStepIndex;
@@ -1106,7 +1473,7 @@ const getPreparedSpellLimit = () => {
 
       {/* Step Content */}
       {step === 'name' && renderNameStep()}
-      {step === 'race' && renderRaceStep()}
+      {step === 'species' && renderSpeciesStep()}
       {step === 'ability_scores' && renderAbilityScoresStep()}
       {step === 'class' && renderClassStep()}
       {step === 'subclass' && renderSubclassStep()}
@@ -1132,9 +1499,12 @@ const getPreparedSpellLimit = () => {
         {step !== 'review' && (
           <button
             onClick={nextStep}
-            disabled={step === 'name' && !character.name}
+            disabled={
+              (step === 'name' && !character.name) ||
+              (step === 'species' && !character.speciesSelected)
+            }
             className={`px-6 py-3 rounded-lg font-semibold transition-all ${
-              step === 'name' && !character.name
+              (step === 'name' && !character.name) || (step === 'species' && !character.speciesSelected)
                 ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
                 : 'bg-purple-600 hover:bg-purple-500'
             }`}

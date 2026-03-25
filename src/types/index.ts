@@ -7,7 +7,9 @@ export interface Character {
   id: string;
   name: string;
   playerName?: string;
-  race: Race;
+  species?: Species;
+  selectedSize?: "Small" | "Medium";
+  speciesSelected?: boolean;
   background: Background;
   classData: ClassEntry;
   level: number;
@@ -71,7 +73,28 @@ export interface AbilityScores {
   charisma: number;
 }
 
-export type Race = "human" | "dwarf" | "elf" | "halfling" | "dragonborn" | "gnome" | "half-elf" | "half-orc" | "tiefling";
+export type Species = 
+  | "aasimar" 
+  | "boggart" 
+  | "changeling" 
+  | "dhampir" 
+  | "dragonborn" 
+  | "dwarf" 
+  | "elf" 
+  | "faerie" 
+  | "flamekin" 
+  | "gnome" 
+  | "goliath" 
+  | "halfling" 
+  | "human" 
+  | "kalashtar" 
+  | "khoravar" 
+  | "lorwyn-changeling" 
+  | "orc" 
+  | "rimekin" 
+  | "shifter" 
+  | "tiefling" 
+  | "warforged";
 
 export interface CharacterTrait {
   name: string;
@@ -95,18 +118,15 @@ export type Background =
 export interface BackgroundData {
   name: string;
   description: string;
+  source?: string;
+  abilityScores?: string[];
+  feat?: string;
   skillProficiencies: string[];
   toolProficiencies?: string[];
   equipment: string[];
   feature: {
     name: string;
     description: string;
-  };
-  suggestedCharacteristics: {
-    personalityTraits: string[];
-    ideals: string[];
-    bonds: string[];
-    flaws: string[];
   };
 }
 
@@ -280,7 +300,7 @@ export interface Feature {
   name: string;
   description: string;
   level?: number;
-  source: "class" | "race" | "background" | "feat";
+  source: "class" | "species" | "background" | "feat";
 }
 
 export type Action = 
@@ -357,6 +377,7 @@ export interface Feat {
   description: string;
   prerequisites?: Prerequisite[];
   benefits: string[];
+  source?: string;
 }
 
 export interface Prerequisite {

@@ -25,7 +25,8 @@ if (schemaArgIndex !== -1 && args[schemaArgIndex + 1]) {
     spells: 'src/data/schemas/spell.schema.json',
     subclasses: 'src/data/schemas/subclass.schema.json',
     feats: 'src/data/schemas/feat.schema.json',
-    backgrounds: 'src/data/schemas/background.schema.json'
+    backgrounds: 'src/data/schemas/background.schema.json',
+    species: 'src/data/schemas/species.schema.json'
   };
   
   if (!typeToSchema[dataType]) {
@@ -61,26 +62,49 @@ export function validateData(data: any[]): {
   const warnings: string[] = [];
   const seenNames = new Set<string>();
   
-  // Validate each item
-  for (const [index, item] of data.entries()) {
-    const name = item.name || item.title || 'Unknown';
-    const prefix = `${data[0].constructor?.name || 'Item'} #${index + 1} (${name})`;
-    
-    // Check for duplicates
-    if (seenNames.has(name)) {
-      errors.push(`${prefix}: Duplicate ${item.name ? 'name' : 'title'}`);
-      continue;
-    }
-    seenNames.add(name);
-    
-    // Validate against schema
-    const isValid = validate(item);
+  // For array schemas (like species), validate the entire array at once
+  const isArraySchema = schema.type === 'array';
+  
+  if (isArraySchema) {
+    // Validate the whole array against the schema
+    const isValid = validate(data);
     if (!isValid) {
       for (const error of validate.errors || []) {
         const field = error.instancePath ? error.instancePath.slice(1) : 'root';
-        errors.push(`${prefix}: Invalid ${field} - ${error.message}`);
+        errors.push(`Invalid ${field} - ${error.message}`);
       }
-      continue;
+    }
+    
+    // Check for duplicate names manually
+    for (const item of data) {
+      const name = item.name || 'Unknown';
+      if (seenNames.has(name)) {
+        errors.push(`Duplicate species name: ${name}`);
+      }
+      seenNames.add(name);
+    }
+  } else {
+    // Validate each item individually (for non-array schemas)
+    for (const [index, item] of data.entries()) {
+      const name = item.name || item.title || 'Unknown';
+      const prefix = `${data[0].constructor?.name || 'Item'} #${index + 1} (${name})`;
+      
+      // Check for duplicates
+      if (seenNames.has(name)) {
+        errors.push(`${prefix}: Duplicate ${item.name ? 'name' : 'title'}`);
+        continue;
+      }
+      seenNames.add(name);
+      
+      // Validate against schema
+      const isValid = validate(item);
+      if (!isValid) {
+        for (const error of validate.errors || []) {
+          const field = error.instancePath ? error.instancePath.slice(1) : 'root';
+          errors.push(`${prefix}: Invalid ${field} - ${error.message}`);
+        }
+        continue;
+      }
     }
   }
   
@@ -123,7 +147,8 @@ export async function main(): Promise<void> {
     spells: join(__dirname, '..', 'src', 'data', 'spells.json'),
     subclasses: join(__dirname, '..', 'src', 'data', 'subclasses.json'),
     feats: join(__dirname, '..', 'src', 'data', 'feats.json'),
-    backgrounds: join(__dirname, '..', 'src', 'data', 'backgrounds.json')
+    backgrounds: join(__dirname, '..', 'src', 'data', 'backgrounds.json'),
+    species: join(__dirname, '..', 'src', 'data', 'species.json')
   };
   
   const dataPath = dataPathMap[dataType];

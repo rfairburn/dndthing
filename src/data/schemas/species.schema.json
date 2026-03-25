@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Species",
+  "description": "D&D 2024 species entries from wikidot.com",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["name", "source"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Friendly name of the species (e.g., 'Aasimar', 'Dragonborn')"
+    },
+    "source": {
+      "type": "string",
+      "description": "Source book (e.g., \"Player's Handbook\", 'Eberron: Rising from the Last War')"
+    },
+    "creatureType": {
+      "type": "string",
+      "description": "Creature type (typically 'Humanoid' for playable species)"
+    },
+    "sizeDescription": {
+      "type": "string",
+      "description": "Full size description text from source (e.g., 'Medium (about 5-7 feet tall)' or 'Medium (about 4-7 feet tall) or Small (about 2-4 feet tall), chosen when you select this species')"
+    },
+    "sizes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["Small", "Medium"]
+      },
+      "description": "Available size options extracted from size description (e.g., ['Medium'] or ['Small', 'Medium'])"
+    },
+    "speed": {
+      "type": "integer",
+      "description": "Base speed in feet (e.g., 30)"
+    },
+    "traits": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Trait name (e.g., 'Darkvision', 'Dwarven Resilience')"
+          },
+          "description": {
+            "type": "string",
+            "description": "Full description of the trait"
+          }
+        }
+      },
+      "description": "List of species traits and abilities"
+    },
+    "description": {
+      "type": "string",
+      "description": "Main descriptive text about the species"
+    }
+  }
+},
+"examples": [
+    {
+      "name": "Dragonborn",
+      "source": "Player's Handbook",
+      "creatureType": "Humanoid",
+      "size": "Medium (about 5-7 feet tall)",
+      "sizeDescription": "Medium (about 5-7 feet tall)",
+      "sizes": ["Medium"],
+      "speed": 30,
+      "traits": [
+        {
+          "name": "Draconic Ancestry",
+          "description": "Your lineage stems from a dragon progenitor. Choose the kind of dragon from the Draconic Ancestors table."
+        }
+      ],
+      "description": "Dragonborn look like wingless, bipedal dragons."
+    },
+    {
+      "name": "Human",
+      "source": "Player's Handbook",
+      "creatureType": "Humanoid",
+      "size": "Medium (about 4-7 feet tall) or Small (about 2-4 feet tall), chosen when you select this species",
+      "sizeDescription": "Medium (about 4-7 feet tall) or Small (about 2-4 feet tall), chosen when you select this species",
+      "sizes": ["Small", "Medium"],
+      "speed": 30,
+      "traits": [
+        {
+          "name": "Resourceful",
+          "description": "You gain Heroic Inspiration whenever you finish a Long Rest."
+        }
+      ],
+      "description": "Humans are as varied as they are numerous."
+    }
+  ]
+}
