@@ -425,17 +425,40 @@ const handleLevelChange = (level: number) => {
   );
 
   const renderSpeciesStep = () => {
-    // Get species array, potentially reordered if expanded card is on right side (odd index)
+    // Get species array, potentially reordered if expanded card needs to move left before expanding
     const speciesEntries = Object.entries(SPECIES);
     let displayOrder = [...speciesEntries];
     
     if (expandedSpecies) {
       const expandedIndex = speciesEntries.findIndex(([key]) => key === expandedSpecies);
-      // If expanded card is on right side (index 1 or 2 in a row of 3), swap with previous for proper grid flow
-      if (expandedIndex > 0 && expandedIndex % 3 !== 0) {
-        displayOrder = [...speciesEntries];
-        [displayOrder[expandedIndex - 1], displayOrder[expandedIndex]] = 
-          [displayOrder[expandedIndex], displayOrder[expandedIndex - 1]];
+      
+      // Move selected card to leftmost position of its row before expanding
+      // Row starts at: expandedIndex - (expandedIndex % 3)
+      const rowStart = expandedIndex - (expandedIndex % 3);
+      
+      if (rowStart !== expandedIndex) {
+        // Build new order: cards before row, selected card, then remaining cards in row
+        displayOrder = [];
+        
+        // Add all cards before this row
+        for (let i = 0; i < rowStart; i++) {
+          displayOrder.push(speciesEntries[i]);
+        }
+        
+        // Add the selected card first in its row
+        displayOrder.push(speciesEntries[expandedIndex]);
+        
+        // Add remaining cards in this row (excluding the selected one)
+        for (let i = rowStart; i <= expandedIndex; i++) {
+          if (i !== expandedIndex) {
+            displayOrder.push(speciesEntries[i]);
+          }
+        }
+        
+        // Add all cards after this row
+        for (let i = expandedIndex + 1; i < speciesEntries.length; i++) {
+          displayOrder.push(speciesEntries[i]);
+        }
       }
     }
 
