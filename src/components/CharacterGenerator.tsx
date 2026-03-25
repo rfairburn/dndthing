@@ -91,6 +91,34 @@ type AbilitySlot = {
 export default function CharacterGenerator() {
   const [step, setStep] = useState<Step>('name');
   const [expandedBackground, setExpandedBackground] = useState<Background | null>(null);
+  const [expandedSpecies, setExpandedSpecies] = useState<string | null>(null);
+  
+  const handleSpeciesToggle = (speciesName: string) => {
+    if (expandedSpecies === speciesName) {
+      setExpandedSpecies(null);
+    } else {
+      setExpandedSpecies(speciesName);
+      
+      // Select this species and auto-select size for single-size species
+      const speciesData = SPECIES[speciesName as Species];
+      if (!character.species || character.species !== speciesName) {
+        setCharacter({ ...character, species: speciesName as Species });
+        
+        if (speciesData.sizes && speciesData.sizes.length === 1) {
+          setCharacter({ ...character, species: speciesName as Species, selectedSize: speciesData.sizes[0] as "Small" | "Medium" });
+        } else if (!character.selectedSize) {
+          // Set default size for multi-size species (first available)
+          if (speciesData.sizes && speciesData.sizes.length > 0) {
+            setCharacter({ ...character, selectedSize: speciesData.sizes[0] as "Small" | "Medium" });
+          }
+        }
+      }
+    }
+  };
+
+  const handleSizeSelect = (size: "Small" | "Medium") => {
+    setCharacter({ ...character, selectedSize: size });
+  };
   
   const [slots, setSlots] = useState<AbilitySlot[]>([
     { ability: 'strength', value: 15 },
@@ -393,54 +421,133 @@ const handleLevelChange = (level: number) => {
   );
 
   const renderSpeciesStep = () => {
-    const selectedSpeciesData = SPECIES[character.species];
-    const hasMultipleSizes = selectedSpeciesData.sizes && selectedSpeciesData.sizes.length > 1;
+    // Get species array, potentially reordered if expanded card is on right side (odd index)
+    const speciesEntries = Object.entries(SPECIES);
+    let displayOrder = [...speciesEntries];
     
+    if (expandedSpecies) {
+      const expandedIndex = speciesEntries.findIndex(([key]) => key === expandedSpecies);
+      // If expanded card is on right side (odd index), swap with previous for proper grid flow
+      if (expandedIndex > 0 && expandedIndex % 2 === 1) {
+        displayOrder = [...speciesEntries];
+        [displayOrder[expandedIndex - 1], displayOrder[expandedIndex]] = 
+          [displayOrder[expandedIndex], displayOrder[expandedIndex - 1]];
+      }
+    }
+
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Species</h2>
-        
-        {hasMultipleSizes && character.species && !character.selectedSize && (
-          <div className="mb-8 p-6 bg-yellow-900/30 rounded-lg border-2 border-yellow-600">
-            <h3 className="text-xl font-bold mb-4 text-yellow-400">Choose Your Size</h3>
-            <p className="text-gray-300 mb-4">{selectedSpeciesData.sizeDescription}</p>
-            <div className="flex gap-4 justify-center">
-              {selectedSpeciesData.sizes.map(size => (
-                <button
-                  key={size}
-                  onClick={() => setCharacter(prev => ({ ...prev, selectedSize: size as "Small" | "Medium" }))}
-                  className="px-6 py-3 rounded-lg border-2 border-purple-500 bg-purple-900/30 hover:bg-purple-800/50 font-bold text-lg transition-all"
-                >
-                  {size}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        <p className="text-gray-400 mb-4">Click a species to see full details and size options. Click again to collapse.</p>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {Object.entries(SPECIES).map(([key, species]) => (
-            <button
-              key={key}
-              onClick={() => {
-                // If switching to a species with single size, auto-set it
-                const newSelectedSize = species.sizes.length === 1 ? species.sizes[0] as "Small" | "Medium" : undefined;
-                setCharacter(prev => ({ ...prev, species: key as Species, selectedSize: newSelectedSize }));
-              }}
-              className={`p-6 rounded-lg border-2 transition-all text-left ${
-                character.species === key
-                  ? 'border-purple-500 bg-purple-900/30'
-                  : 'border-gray-700 hover:border-purple-500 bg-gray-800'
-              }`}
-            >
-              <h3 className="text-xl font-bold mb-2">{species.name}</h3>
-              <p className="text-gray-400 text-sm mb-3 line-clamp-2">{species.description}</p>
-              <div className="flex flex-wrap gap-2">
-                <span className="px-2 py-1 bg-purple-700 rounded text-xs">Size: {species.sizes.join(' or ')}</span>
-                <span className="px-2 py-1 bg-blue-700 rounded text-xs">Speed: {species.speed} ft</span>
+          {displayOrder.map(([key, species]) => {
+            const isExpanded = expandedSpecies === key;
+            const isSelected = character.species === key;
+            
+            return (
+              <div
+                key={key}
+                className={`rounded-lg border-2 transition-all ${
+                  isExpanded 
+                    ? 'col-span-1 md:col-span-2 lg:col-span-3 border-purple-500 bg-purple-900/40'
+                    : isSelected
+                      ? 'border-purple-500 bg-purple-900/30'
+                      : 'border-gray-700 hover:border-purple-500 bg-gray-800'
+                }`}
+              >
+                {/* Condensed Card */}
+                <button
+                  onClick={() => {
+                    handleSpeciesToggle(key);
+                    // Also select this species if not already selected
+                    const speciesKey = key as Species;
+                    const speciesData = SPECIES[speciesKey];
+                    
+                    if (!character.species || character.species !== speciesKey) {
+                      setCharacter({ ...character, species: speciesKey });
+                      
+                      if (speciesData.sizes && speciesData.sizes.length === 1) {
+                        setCharacter({ ...character, species: speciesKey, selectedSize: speciesData.sizes[0] as "Small" | "Medium" });
+                      } else if (!character.selectedSize) {
+                        // Set default size for multi-size species (first available)
+                        if (speciesData.sizes && speciesData.sizes.length > 0) {
+                          setCharacter({ ...character, selectedSize: speciesData.sizes[0] as "Small" | "Medium" });
+                        }
+                      }
+                    }
+                  }}
+                  className="w-full p-6 text-left"
+                >
+                  <h3 className="text-xl font-bold mb-2">{species.name}</h3>
+                  <p className="text-gray-400 text-sm mb-3 line-clamp-2">{species.description}</p>
+                  
+                  {/* Show currently selected size */}
+                  {isSelected && character.selectedSize ? (
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2 py-1 bg-purple-700 rounded text-xs">Size: {character.selectedSize}</span>
+                      <span className="px-2 py-1 bg-blue-700 rounded text-xs">Speed: {species.speed} ft</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      <span className="px-2 py-1 bg-purple-700 rounded text-xs">Size: {species.sizes.join(' or ')}</span>
+                      <span className="px-2 py-1 bg-blue-700 rounded text-xs">Speed: {species.speed} ft</span>
+                    </div>
+                  )}
+                </button>
+                
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="p-6 pt-0 border-t border-gray-700">
+                    <p className="text-gray-300 mb-4">{species.description}</p>
+                    
+                    {/* Size Selection Section */}
+                    <div className="mb-4">
+                      <h4 className="font-bold text-sm text-gray-400 mb-2">Size Options</h4>
+                      {species.sizeDescription && (
+                        <p className="text-gray-300 text-sm mb-3">{species.sizeDescription}</p>
+                      )}
+                      
+                      {/* Size buttons */}
+                      <div className="flex flex-wrap gap-2">
+                        {species.sizes.map(size => {
+                          const isSizeSelected = character.selectedSize === size;
+                          
+                          return (
+                            <button
+                              key={size}
+                              onClick={() => handleSizeSelect(size as "Small" | "Medium")}
+                              className={`px-3 py-2 rounded text-sm border-2 ${
+                                isSizeSelected && isSelected
+                                  ? 'border-purple-500 bg-purple-700 font-bold'
+                                  : 'border-gray-600 hover:border-purple-400 bg-gray-700'
+                              }`}
+                            >
+                              Size: {size}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                    
+                    {/* Traits */}
+                    {species.traits && species.traits.length > 0 && (
+                      <div>
+                        <h4 className="font-bold text-sm text-gray-400 mb-2">Traits</h4>
+                        <ul className="text-sm space-y-2">
+                          {species.traits.map((trait, index) => (
+                            <li key={index} className="text-gray-300">
+                              <span className="font-bold">{trait.name}</span>: {trait.description}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
       </div>
     );
