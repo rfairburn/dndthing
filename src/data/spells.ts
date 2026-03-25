@@ -18,21 +18,13 @@ export const SPELLS_BY_CLASS: Record<ClassType, (SpellWithClasses & { classes: C
 };
 
 (rawSpellsData as any[]).forEach(spell => {
-  SPELLS_BY_CLASS.artificer.push(spell);
-  SPELLS_BY_CLASS.barbarian.push(spell);
-  SPELLS_BY_CLASS.bard.push(spell);
-  SPELLS_BY_CLASS.cleric.push(spell);
-  SPELLS_BY_CLASS.druid.push(spell);
-  SPELLS_BY_CLASS.fighter.push(spell);
-  SPELLS_BY_CLASS.monk.push(spell);
-  SPELLS_BY_CLASS.paladin.push(spell);
-  SPELLS_BY_CLASS.ranger.push(spell);
-  SPELLS_BY_CLASS.rogue.push(spell);
-  SPELLS_BY_CLASS.sorcerer.push(spell);
-  SPELLS_BY_CLASS.warlock.push(spell);
-  SPELLS_BY_CLASS.wizard.push(spell);
+  spell.classes.forEach((cls: ClassType) => {
+    if (SPELLS_BY_CLASS[cls]) {
+      SPELLS_BY_CLASS[cls].push(spell);
+    }
+  });
 });
 
 export function getSpellsForClass(cls: ClassType): (SpellWithClasses & { classes: ClassType[] })[] {
-  return SPELLS_BY_CLASS[cls].filter(spell => spell.classes.includes(cls));
+  return SPELLS_BY_CLASS[cls];
 }

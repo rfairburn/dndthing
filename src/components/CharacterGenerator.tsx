@@ -145,12 +145,30 @@ export default function CharacterGenerator() {
   });
 
   const getAbilityScoresFromSlots = (): Record<typeof abilities[number], number> => {
-    return slots.reduce((acc, slot) => {
+    // Initialize with 0 for all abilities, then add base scores and bonuses
+    const finalScores: Record<typeof abilities[number], number> = {
+      strength: 0,
+      dexterity: 0,
+      constitution: 0,
+      intelligence: 0,
+      wisdom: 0,
+      charisma: 0
+    };
+    
+    // Add base scores from slots (only if assigned)
+    slots.forEach(slot => {
       if (slot.value !== null) {
-        acc[slot.ability] = slot.value;
+        finalScores[slot.ability] = slot.value;
       }
-      return acc;
-    }, {} as Record<typeof abilities[number], number>);
+    });
+    
+    // Add background bonuses
+    abilities.forEach(ability => {
+      const bonusValue = backgroundBonuses[ability] || 0;
+      finalScores[ability] += bonusValue;
+    });
+    
+    return finalScores;
   };
 
   const [character, setCharacter] = useState<Character>({
@@ -783,10 +801,16 @@ const renderAbilityScoresStep = () => {
     const classKey = character.classData.class;
     const classData = CLASSES[classKey];
     
+    // DEBUG: Log class data
+    console.log('Spells Step - Class:', classKey);
+    console.log('Spells Step - spellcastingInfo:', classData.spellcastingInfo ? 'EXISTS' : 'UNDEFINED');
+    
     // Get all spells and filter by the selected class
     const allSpellsForClass = getSpellsForClass(classKey);
+    console.log('Spells Step - All spells for class:', allSpellsForClass.length);
     
     if (!classData.spellcastingInfo) {
+      console.log('Spells Step - NO SPELLCASTING INFO, showing error');
       return (
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold mb-6 text-purple-400">Spells</h2>
@@ -805,7 +829,7 @@ const renderAbilityScoresStep = () => {
       for (let level = 9; level >= 1; level--) {
         const slotKey = `level${level}` as keyof typeof spellcastingInfo.spellSlots;
         const slots = spellcastingInfo.spellSlots[slotKey];
-        if (slots && slots[Math.min(character.level - 1, 19)] && slots[Math.min(character.level - 1, 19)] > 0) {
+        if (slots && slots[Math.min(character.level, 20)] && slots[Math.min(character.level, 20)] > 0) {
           return level;
         }
       }
@@ -873,10 +897,7 @@ const renderAbilityScoresStep = () => {
       return spellcastingInfo.cantripsKnown[Math.min(character.level - 1, 19)] || 0;
     };
 
-    const getSpellbookCount = () => {
-      if (isWizard) return character.wizardSpellbook.length;
-      return 0;
-    };
+    
 
     const getSpellbookLimit = () => {
       if (!isWizard) return 0;
@@ -884,28 +905,39 @@ const renderAbilityScoresStep = () => {
       return 6 + (character.level - 1) * 2;
     };
 
-const getPreparedSpellLimit = () => {
-      if (spellcastingInfo.spellsKnown) {
-        return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
-      }
-      if (spellcastingInfo.spellsPrepared && character.abilityScores.intelligence !== undefined) {
-        const abilityMod = calculateAbilityModifier(character.abilityScores.intelligence);
-        return spellcastingInfo.spellsPrepared(abilityMod, character.level);
-      }
-      if (spellcastingInfo.spellsPrepared && character.abilityScores.wisdom !== undefined) {
-        const abilityMod = calculateAbilityModifier(character.abilityScores.wisdom);
-        return spellcastingInfo.spellsPrepared(abilityMod, character.level);
-      }
-      if (spellcastingInfo.spellsPrepared && character.abilityScores.charisma !== undefined) {
-        const abilityMod = calculateAbilityModifier(character.abilityScores.charisma);
-        return spellcastingInfo.spellsPrepared(abilityMod, character.level);
-      }
-      if (spellcastingInfo.spellsPrepared && character.abilityScores.strength !== undefined) {
-        const abilityMod = calculateAbilityModifier(character.abilityScores.strength);
-        return spellcastingInfo.spellsPrepared(abilityMod, character.level);
-      }
-      return 0;
-    };
+
+
+      const getPreparedSpellLimit = () => {
+        if (spellcastingInfo.spellsKnown) {
+          return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
+        }
+        
+        // Determine which ability score to use based on class
+        let abilityScore: number | undefined;
+        if (classKey === 'artificer' || classKey === 'wizard') {
+          abilityScore = character.abilityScores.intelligence;
+        } else if (classKey === 'cleric' || classKey === 'druid') {
+          abilityScore = character.abilityScores.wisdom;
+        } else if (classKey === 'bard' || classKey === 'paladin' || classKey === 'sorcerer' || classKey === 'warlock') {
+          abilityScore = character.abilityScores.charisma;
+        } else if (classKey === 'ranger') {
+          // Rangers can use Wisdom or Dexterity, default to Wisdom for spellcasting
+          abilityScore = character.abilityScores.wisdom ?? character.abilityScores.dexterity;
+        }
+        
+        // If ability score is not set yet, return a placeholder value (assuming 10 = +0 modifier)
+        if (spellcastingInfo.spellsPrepared && abilityScore !== undefined) {
+          const abilityMod = calculateAbilityModifier(abilityScore);
+          return spellcastingInfo.spellsPrepared(abilityMod, character.level);
+        }
+        
+        // Fallback: assume 10 in the primary ability (+0 modifier) if not set yet
+        if (spellcastingInfo.spellsPrepared) {
+          return spellcastingInfo.spellsPrepared(0, character.level);
+        }
+        
+        return 0;
+      };
 
     const maxSpellLevel = getMaxSpellLevel();
 
@@ -927,7 +959,7 @@ const getPreparedSpellLimit = () => {
           ) : (
             <p className="text-gray-300">
               Cantrips Known: {character.cantripsKnown.length} / {getCantripLimit()} | 
-              Spells Known/Prepared: {character.knownSpells.length} / {getSpellbookCount()}
+              Spells Known/Prepared: {character.knownSpells.length} / {getPreparedSpellLimit()}
             </p>
           )}
         </div>
@@ -940,17 +972,21 @@ const getPreparedSpellLimit = () => {
             <p className="text-gray-400 mb-4">Select your known cantrips. You know {getCantripLimit()} cantrips at this level.</p>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCantrips.map(spell => (
+            {filteredCantrips.map(spell => {
+              const isSelected = isCantripSelected(spell.name);
+              const isAtLimit = !isWizard && character.cantripsKnown.length >= getCantripLimit();
+              
+              return (
               <button
                 key={spell.name}
                 onClick={() => toggleCantrip(spell.name)}
-                disabled={!isWizard && (!spellcastingInfo.cantripsKnown || character.cantripsKnown.includes(spell.name) || character.cantripsKnown.length >= getCantripLimit())}
+                disabled={isAtLimit && !isSelected}
                 className={`p-4 rounded-lg border-2 transition-all text-left ${
-                  isCantripSelected(spell.name)
+                  isSelected
                     ? 'border-green-500 bg-green-900/30'
-                    : !isWizard && (character.cantripsKnown.includes(spell.name) || character.cantripsKnown.length >= getCantripLimit())
+                    : isAtLimit
                       ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
-                      : isWizard && character.cantripsKnown.length >= getCantripLimit() && !character.cantripsKnown.includes(spell.name)
+                      : isWizard && character.cantripsKnown.length >= getCantripLimit() && !isSelected
                         ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
                         : 'border-gray-700 hover:border-purple-500 bg-gray-800'
                 }`}
@@ -966,7 +1002,8 @@ const getPreparedSpellLimit = () => {
                   {spell.components.material && <span className="bg-gray-700 px-1 rounded">M</span>}
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -981,39 +1018,48 @@ const getPreparedSpellLimit = () => {
               {isWizard ? (
                 <p className="text-gray-400 mb-4">Click to add/remove spells from your spellbook. Then prepare your daily spells below.</p>
               ) : (
-                <p className="text-gray-400 mb-4">Select your known/prepared spells. You know {getSpellbookCount()} at this level.</p>
+                <p className="text-gray-400 mb-4">Select your known/prepared spells. You know {getPreparedSpellLimit()} at this level.</p>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {spellsAtLevel.map(spell => (
-                  <button
-                    key={spell.name}
-                    onClick={() => isWizard ? toggleSpellInSpellbook(spell.name) : toggleSpellPreparation(spell.name)}
-                    disabled={!isWizard && character.knownSpells.length >= getSpellbookCount()}
-                    className={`p-4 rounded-lg border-2 transition-all text-left ${
-                      isWizard && isInSpellbook(spell.name) ? 'border-green-500 bg-green-900/30' :
-                        isWizard && !isInSpellbook(spell.name) && character.wizardSpellbook.length >= getSpellbookLimit()
-                          ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
-                          : isWizard && !isInSpellbook(spell.name)
-                            ? 'border-gray-700 hover:border-purple-500 bg-gray-800'
-                          : isSpellPreparedOrKnown(spell.name)
-                            ? 'border-green-500 bg-green-900/30'
-                            : character.knownSpells.length >= getSpellbookCount() && !isSpellPreparedOrKnown(spell.name)
-                              ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
-                              : 'border-gray-700 hover:border-purple-500 bg-gray-800'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-bold">{spell.name}</h4>
-                      <span className="text-xs bg-purple-700 px-2 py-1 rounded">Level {level}</span>
-                    </div>
-                    <p className="text-sm text-gray-400 mb-2 whitespace-pre-wrap">{spell.description.substring(0, 100)}...</p>
-                    <div className="flex gap-2 text-xs">
-                      {spell.components.verbal && <span className="bg-gray-700 px-1 rounded">V</span>}
-                      {spell.components.somatic && <span className="bg-gray-700 px-1 rounded">S</span>}
-                      {spell.components.material && <span className="bg-gray-700 px-1 rounded">M</span>}
-                    </div>
-                  </button>
-                ))}
+                {spellsAtLevel.map(spell => {
+                  const spellbookLimit = isWizard ? 6 + (character.level - 1) * 2 : 0;
+                  const isAtSpellbookLimit = isWizard && character.wizardSpellbook.length >= spellbookLimit;
+                  const isAtPreparedLimit = !isWizard && character.knownSpells.length >= getPreparedSpellLimit();
+                  
+                  return (
+                    <button
+                      key={spell.name}
+                      onClick={() => isWizard ? toggleSpellInSpellbook(spell.name) : toggleSpellPreparation(spell.name)}
+                      disabled={isWizard 
+                        ? !isInSpellbook(spell.name) && isAtSpellbookLimit
+                        : !isSpellPreparedOrKnown(spell.name) && isAtPreparedLimit
+                      }
+                      className={`p-4 rounded-lg border-2 transition-all text-left ${
+                        isWizard && isInSpellbook(spell.name) ? 'border-green-500 bg-green-900/30' :
+                          isWizard && !isInSpellbook(spell.name) && isAtSpellbookLimit
+                            ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
+                            : isWizard && !isInSpellbook(spell.name)
+                              ? 'border-gray-700 hover:border-purple-500 bg-gray-800'
+                            : isSpellPreparedOrKnown(spell.name)
+                              ? 'border-green-500 bg-green-900/30'
+                              : !isWizard && isAtPreparedLimit
+                                ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
+                                : 'border-gray-700 hover:border-purple-500 bg-gray-800'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-bold">{spell.name}</h4>
+                        <span className="text-xs bg-purple-700 px-2 py-1 rounded">Level {level}</span>
+                      </div>
+                      <p className="text-sm text-gray-400 mb-2 whitespace-pre-wrap">{spell.description.substring(0, 100)}...</p>
+                      <div className="flex gap-2 text-xs">
+                        {spell.components.verbal && <span className="bg-gray-700 px-1 rounded">V</span>}
+                        {spell.components.somatic && <span className="bg-gray-700 px-1 rounded">S</span>}
+                        {spell.components.material && <span className="bg-gray-700 px-1 rounded">M</span>}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );

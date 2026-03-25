@@ -1,4 +1,4 @@
-import type { ClassData } from "../types";
+import type { ClassData, SpellcastingInfo } from "../types";
 import classesJson from "./classes.json";
 
 /**
@@ -43,6 +43,44 @@ function parseStartingEquipment(equipmentText: string): Array<{ item: string; qu
   return equipmentList;
 }
 
+// Spell slot progression from SRD (levels 1-20)
+const spellSlotProgression = {
+  level1: [0, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+  level2: [0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  level3: [0, 0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  level4: [0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  level5: [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+  level6: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  level7: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  level8: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+  level9: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1]
+};
+
+// Artificer spellcasting info (from wikidot - NOT in SRD PDF)
+const artificerSpellcastingInfo: SpellcastingInfo = {
+  cantripsKnown: [2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4],
+  spellsPrepared: (abilityMod: number, level: number) => {
+    // Artificer prepares Int mod + half level (rounded down), minimum 2
+    return Math.max(2, abilityMod + Math.floor(level / 2));
+  },
+  spellSlots: {
+    level1: [0, 2, 2, 2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+    level2: [0, 0, 0, 0, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+    level3: [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+    level4: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  }
+};
+
+// Druid spellcasting info (from SRD)
+const druidSpellcastingInfo: SpellcastingInfo = {
+  cantripsKnown: [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
+  spellsPrepared: (abilityMod: number, level: number) => {
+    // Druid prepares Wis mod + druid level
+    return abilityMod + level;
+  },
+  spellSlots: spellSlotProgression
+};
+
 function transformClass(classJson: any): ClassData {
   const classKey = classJson.name.toLowerCase();
   
@@ -86,6 +124,15 @@ function transformClass(classJson: any): ClassData {
     description: feature.description
   }));
   
+  let spellcastingInfo: SpellcastingInfo | undefined;
+  
+  // Add spellcasting info for spellcasting classes
+  if (classKey === 'artificer') {
+    spellcastingInfo = artificerSpellcastingInfo;
+  } else if (classKey === 'druid') {
+    spellcastingInfo = druidSpellcastingInfo;
+  }
+  
   return {
     class: classKey as any,
     hitDie: classJson.hitDie,
@@ -95,7 +142,8 @@ function transformClass(classJson: any): ClassData {
     weaponProficiencies,
     toolProficiencies: [], // Will be added if present in scraped data
     startingEquipment: parseStartingEquipment(classJson.startingEquipment || ''),
-    classFeatures
+    classFeatures,
+    spellcastingInfo
   };
 }
 
