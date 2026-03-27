@@ -26,7 +26,8 @@ if (schemaArgIndex !== -1 && args[schemaArgIndex + 1]) {
     subclasses: 'src/data/schemas/subclass.schema.json',
     feats: 'src/data/schemas/feat.schema.json',
     backgrounds: 'src/data/schemas/background.schema.json',
-    species: 'src/data/schemas/species.schema.json'
+    species: 'src/data/schemas/species.schema.json',
+    'spell-progression': 'src/data/schemas/spell-progression.schema.json'
   };
   
   if (!typeToSchema[dataType]) {
@@ -62,7 +63,7 @@ export function validateData(data: any[]): {
   const warnings: string[] = [];
   const seenNames = new Set<string>();
   
-  // For array schemas (like species), validate the entire array at once
+  // For array schemas (like spell-progression), validate the entire array at once
   const isArraySchema = schema.type === 'array';
   
   if (isArraySchema) {
@@ -79,7 +80,7 @@ export function validateData(data: any[]): {
     for (const item of data) {
       const name = item.name || 'Unknown';
       if (seenNames.has(name)) {
-        errors.push(`Duplicate species name: ${name}`);
+        errors.push(`Duplicate class name: ${name}`);
       }
       seenNames.add(name);
     }
@@ -129,7 +130,7 @@ export async function main(): Promise<void> {
   
   if (!dataType) {
     // Auto-detect from schema filename
-    if (schemaName.includes('spell')) {
+    if (schemaName.includes('spell') && !schemaName.includes('progression')) {
       dataType = 'spells';
     } else if (schemaName.includes('subclass')) {
       dataType = 'subclasses';
@@ -137,6 +138,10 @@ export async function main(): Promise<void> {
       dataType = 'feats';
     } else if (schemaName.includes('background')) {
       dataType = 'backgrounds';
+    } else if (schemaName.includes('species')) {
+      dataType = 'species';
+    } else if (schemaName.includes('spell-progression')) {
+      dataType = 'spell-progression';
     } else {
       console.error(`❌ Unknown schema type: ${schemaName}`);
       process.exit(1);
@@ -148,7 +153,8 @@ export async function main(): Promise<void> {
     subclasses: join(__dirname, '..', 'src', 'data', 'subclasses.json'),
     feats: join(__dirname, '..', 'src', 'data', 'feats.json'),
     backgrounds: join(__dirname, '..', 'src', 'data', 'backgrounds.json'),
-    species: join(__dirname, '..', 'src', 'data', 'species.json')
+    species: join(__dirname, '..', 'src', 'data', 'species.json'),
+    'spell-progression': join(__dirname, '..', 'src', 'data', 'spell-progression.json')
   };
   
   const dataPath = dataPathMap[dataType];

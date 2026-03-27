@@ -20,6 +20,8 @@
     "validate:feats": "tsx scripts/validate-output.ts --type feats",
     "validate:backgrounds": "tsx scripts/validate-output.ts --type backgrounds",
     "validate:species": "tsx scripts/validate-output.ts --type species",
+    "validate:spell-progression": "tsx scripts/validate-output.ts --type spell-progression",
+    "scrape:spell-progression": "tsx scripts/scrape-dnd2024.ts --type spell-progression",
     "parse:srd-pdf": "tsx scripts/parse-srd-pdf.ts",
     "query:srd": "tsx scripts/query-srd.ts"
   },

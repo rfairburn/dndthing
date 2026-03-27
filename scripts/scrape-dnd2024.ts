@@ -6,10 +6,10 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
 const config = yargs(hideBin(process.argv))
-  .option('types', {
-    alias: 't',
+  .option('type', {
+    alias: ['types', 't'],
     type: 'string',
-    default: 'all',
+    default: null,
     description: 'Type of content to scrape (comma-separated, e.g., spells,subclasses)'
   })
   .option('max-items', {
@@ -46,7 +46,7 @@ const config = yargs(hideBin(process.argv))
   .alias('help', 'h')
   .parseSync();
 
-type ScrapeType = 'spells' | 'subclasses' | 'feats' | 'backgrounds' | 'species' | 'classes';
+type ScrapeType = 'spells' | 'subclasses' | 'feats' | 'backgrounds' | 'species' | 'classes' | 'spell-progression';
 
 interface ScrapedItem {
   name: string;
@@ -1419,6 +1419,279 @@ async function getAllClassNames(browser: puppeteer.Browser): Promise<string[]> {
   return classLinks;
 }
 
+async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void> {
+  const successCount = { value: 0 };
+  const warningCount = { value: 0 };
+  const errorCount = { value: 0 };
+  
+  try {
+    // Get all class names first
+    const classNames = await getAllClassNames(browser);
+    
+    if (classNames.length === 0) {
+      console.error('❌ No classes found, exiting...');
+      process.exit(1);
+    }
+    
+    console.log(`\n📋 Scraping spell progression for ${classNames.length} classes...\n`);
+    
+    const spellProgression: any[] = [];
+    
+    // Process each class
+    for (let i = 0; i < classNames.length; i++) {
+      if (config.maxItems && i >= config.maxItems) break;
+      
+      const className = classNames[i];
+      console.log(`\n[${i + 1}/${classNames.length}] Scraping ${className} spell progression...`);
+      
+      try {
+        // Fetch class page HTML
+        let html: string;
+        try {
+          const response = await axios.get(`http://dnd2024.wikidot.com/${className}:main`, { timeout: 15000 });
+          html = response.data;
+        } catch (error) {
+          console.error(`  ❌ Failed to fetch class page`);
+          errorCount.value++;
+          continue;
+        }
+        
+        const page = await browser.newPage();
+        await page.setContent(html);
+        
+        // Parse spell progression data from HTML
+        const progressData: any = await page.evaluate(() => {
+          const result: any = {
+            name: '',
+            spellcastingAbility: '',
+            cantripsKnown: [] as number[],
+            spellsPreparedFormula: '',
+            spellsPrepared: [] as number[], // Fixed chart values (e.g., Bard)
+            spellSlots: {} as Record<number, number[]>,
+            spellSlotLevels: {} as Record<number, number>, // Maps column index to slot level
+            baseSpellsKnown: [] as number[] // For classes like Bard/Sorcerer that know specific spells
+          };
+          
+          const content = document.querySelector('#page-content');
+          if (!content) return null;
+          
+          // Extract spellcasting ability from Core Traits table first, then refine with text description
+          const coreTraitsTable = document.querySelector('table.wiki-content-table');
+          if (coreTraitsTable) {
+            const rows = coreTraitsTable.querySelectorAll('tr');
+            rows.forEach(row => {
+              const cells = row.querySelectorAll('td, th');
+              if (cells.length >= 2) {
+                const label = cells[0].textContent?.toLowerCase();
+                if (label && label.includes('primary ability')) {
+                  result.spellcastingAbility = cells[1]?.textContent?.trim().toLowerCase() || '';
+                }
+              }
+            });
+          }
+          
+          // Refine spellcasting ability from text description for classes with multiple abilities (Ranger, Paladin)
+          const paragraphTexts = Array.from(document.querySelectorAll('.main-content p')).map(p => p.textContent || '');
+          const allParagraphs = paragraphTexts.join('\n');
+          
+          // Look for "Spellcasting Ability" section that specifies the actual casting stat
+          if (allParagraphs.includes('Spellcasting Ability')) {
+            const abilityMatch = allParagraphs.match(/Spellcasting Ability\.\s*([A-Z][a-z]+)\s+is\s+your\s+spellcasting\s+ability/i);
+            if (abilityMatch) {
+              result.spellcastingAbility = abilityMatch[1].toLowerCase();
+            }
+          }
+          
+          // Find the spell progression table (Part B tables typically)
+           const allTables = document.querySelectorAll('table.wiki-content-table');
+           
+           for (const table of allTables) {
+             const tableText = table.textContent?.toLowerCase() || '';
+             
+             // Look for tables with Prepared Spells and spell level columns (cantrips optional - Rangers/Paladins don't have cantrips)
+              // Don't require "spell slots" in table text - it's often in surrounding paragraphs
+            if ((tableText.includes('cantrips') || tableText.includes('prepared spells')) &&
+                 (tableText.includes('1st') || tableText.includes('2nd'))) {
+              
+              const rows = table.querySelectorAll('tr');
+              let hasLevelColumn = false;
+              let cantripColIndex = -1;
+              let preparedSpellsColIndex = -1;
+              const spellSlotIndices: number[] = [];
+              
+// Find column indices from header row and store slot levels
+               if (rows.length > 0) {
+                 const headerCells = rows[0].querySelectorAll('th, td');
+                 
+                 for (let colIdx = 0; colIdx < headerCells.length; colIdx++) {
+                   const cellText = headerCells[colIdx]?.textContent?.toLowerCase() || '';
+                   
+                   if (cellText.includes('level') && colIdx === 0) {
+                     hasLevelColumn = true;
+                   } else if (cellText.includes('cantrips')) {
+                     cantripColIndex = colIdx;
+                   } else if (cellText.includes('prepared spells')) {
+                     preparedSpellsColIndex = colIdx;
+                   } else if (/^\d+(?:st|nd|rd|th)?$/i.test(cellText.trim())) {
+                     // Match "1st", "2nd", "3rd", etc. or just digits
+                     spellSlotIndices.push(colIdx);
+                     // Extract numeric level from header like "1st", "2nd", etc.
+                     const slotLevelMatch = cellText.match(/^(\d+)/i);
+                     if (slotLevelMatch) {
+                       result.spellSlotLevels[colIdx] = parseInt(slotLevelMatch[1], 10);
+                     } else {
+                       result.spellSlotLevels[colIdx] = colIdx - 1; // Fallback
+                     }
+                   }
+                 }
+               }
+              
+              // Parse data rows (skip header)
+              for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
+                const cells = rows[rowIdx].querySelectorAll('td');
+                
+                if (!hasLevelColumn || cells.length === 0) continue;
+                
+                const levelText = cells[0]?.textContent?.trim();
+                if (!levelText || !/^\d+$/.test(levelText)) continue;
+                
+                const level = parseInt(levelText, 10);
+                
+                // Get cantrips known at this level (store at index = level - 1)
+                if (cantripColIndex !== -1 && cells[cantripColIndex]) {
+                  const cantripVal = cells[cantripColIndex]?.textContent?.trim();
+                  if (/^\d+$/.test(cantripVal)) {
+                    result.cantripsKnown[level - 1] = parseInt(cantripVal, 10);
+                  }
+                }
+                
+                // Get spells prepared at this level (store in array for fixed charts like Bard)
+                if (preparedSpellsColIndex !== -1 && cells[preparedSpellsColIndex]) {
+                  const preparedVal = cells[preparedSpellsColIndex]?.textContent?.trim();
+                  if (/^\d+$/.test(preparedVal)) {
+                    result.spellsPrepared[level - 1] = parseInt(preparedVal, 10);
+                  } else if (preparedVal && !/^\d+$/.test(preparedVal)) {
+                    // Store formula text if it's not a number (e.g., "level + modifier")
+                    result.spellsPreparedFormula = preparedVal;
+                  }
+                }
+                
+                // Get spell slots for each level (store at index = level - 1)
+                for (const slotIdx of spellSlotIndices) {
+                  if (cells[slotIdx]) {
+                    const slotVal = cells[slotIdx]?.textContent?.trim();
+                    // Use the stored slot level from header parsing
+                    const slotLevel = result.spellSlotLevels[slotIdx] || slotIdx - 1;
+                    
+                    if (/^\d+$/.test(slotVal)) {
+                      if (!result.spellSlots[slotLevel]) {
+                        result.spellSlots[slotLevel] = [];
+                      }
+                      result.spellSlots[slotLevel][level - 1] = parseInt(slotVal, 10);
+                    } else if (slotVal === '-' || slotVal === '') {
+                      if (!result.spellSlots[slotLevel]) {
+                        result.spellSlots[slotLevel] = [];
+                      }
+                      result.spellSlots[slotLevel][level - 1] = 0;
+                    }
+                  }
+                }
+              }
+              
+// Extract spells prepared formula from text description (only if not already set by table values)
+                const spellcastingSection = Array.from(document.querySelectorAll('.main-content p')).join('\n');
+                
+                for (const para of paragraphTexts) {
+                  if (!result.spellsPreparedFormula && para.includes('Prepared Spells') && para.includes('increases')) {
+                    // Look for pattern like "as shown in the Prepared Spells column"
+                    result.spellsPreparedFormula = 'level + modifier';
+                    
+                    // Check for specific formulas
+                    if (para.includes('Intelligence modifier') || 
+                        para.includes('Wisdom modifier') || 
+                        para.includes('Charisma modifier')) {
+                      const abilityMatch = para.match(/(Intelligence|Wisdom|Charisma)/i);
+                      if (abilityMatch) {
+                        result.spellsPreparedFormula = `${abilityMatch[1]} modifier + level`;
+                      }
+                    }
+                  }
+                }
+              
+// Check for base spells known (for Sorcerer/Bard who know specific number)
+               if (allParagraphs.includes('choose') && allParagraphs.includes('level 1')) {
+                 const initialSpellsMatch = allParagraphs.match(/choose\s+(\d+)\s+level\s+\d+/i);
+                 if (initialSpellsMatch) {
+                   result.baseSpellsKnown[1] = parseInt(initialSpellsMatch[1], 10);
+                 }
+               }
+              
+              break; // Found the table we need
+            }
+          }
+          
+          return result;
+        });
+        
+        if (!progressData) {
+          console.warn(`\n⚠️  ${className}: Failed to extract spell progression data`);
+          warningCount.value++;
+          continue;
+        }
+        
+        // Transform data: convert object-based spellSlots to array format and remove helper fields
+const transformedData: any = {
+  name: className,
+  spellcastingAbility: progressData.spellcastingAbility,
+  cantripsKnown: progressData.cantripsKnown,
+  spellsPreparedFormula: progressData.spellsPreparedFormula,
+  spellsPrepared: progressData.spellsPrepared,
+  baseSpellsKnown: progressData.baseSpellsKnown,
+  spellSlots: [] as number[][]
+};
+        
+        // Debug: log extracted data
+        console.log(`  Extracted: ability=${transformedData.spellcastingAbility}, cantrips=${transformedData.cantripsKnown.length}, slots=${transformedData.spellSlots.length}`);
+
+// Convert object-based spellSlots to array format (index = spell level - 1)
+if (progressData.spellSlots) {
+  // Find max slot level to determine array size
+  const maxSlotLevel = Math.max(...Object.keys(progressData.spellSlots).map(k => parseInt(k, 10)), 0);
+  
+  for (let slotLevel = 1; slotLevel <= maxSlotLevel; slotLevel++) {
+    const slotsAtLevel = progressData.spellSlots[slotLevel] || [];
+    transformedData.spellSlots.push(slotsAtLevel);
+  }
+}
+
+// Remove internal helper field spellSlotLevels if present
+delete progressData.spellSlotLevels;
+
+spellProgression.push(transformedData);
+successCount.value++;
+console.log(`  ✓ Scraped ${className} spell progression`);
+        
+      } catch (error: any) {
+        console.error(`  ❌ Error: ${error.message}`);
+        if (!config.continueOnError) {
+          errorCount.value++;
+          throw error;
+        }
+      }
+    }
+    
+    const outputPath = 'src/data/spell-progression.json';
+    fs.writeFileSync(outputPath, JSON.stringify(spellProgression, null, 2));
+    console.log(`\n\n✓ Final output saved to ${outputPath}`);
+    
+    printSummary(successCount.value, warningCount.value, errorCount.value, classNames.length);
+    
+  } catch (error: any) {
+    console.error(`\n❌ Fatal error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
 async function scrapeClasses(browser: puppeteer.Browser): Promise<void> {
   const successCount = { value: 0 };
   const warningCount = { value: 0 };
@@ -1599,6 +1872,13 @@ async function scrapeClasses(browser: puppeteer.Browser): Promise<void> {
 async function main(): Promise<void> {
   const typesInput = config.types as string;
   
+  // Validate that --type is provided and not empty
+  if (!typesInput || typesInput.trim() === '') {
+    console.error('\n❌ Error: Missing required --type parameter');
+    console.error('Valid options: spells, subclasses, feats, backgrounds, species, classes, spell-progression, all');
+    process.exit(1);
+  }
+  
   // Parse comma-separated types or use default
   let scrapeTypes: ScrapeType[];
   if (typesInput === 'all') {
@@ -1607,10 +1887,10 @@ async function main(): Promise<void> {
     scrapeTypes = typesInput.split(',').map(t => t.trim()) as ScrapeType[];
     
     // Validate: check for invalid types
-    const validTypes = ['spells', 'subclasses', 'feats', 'backgrounds', 'species', 'classes', 'all'];
+    const validTypes = ['spells', 'subclasses', 'feats', 'backgrounds', 'species', 'classes', 'spell-progression', 'all'];
     for (const type of scrapeTypes) {
       if (!validTypes.includes(type)) {
-        console.error(`\n❌ Error: Invalid type "${type}". Valid options: spells, subclasses, feats, backgrounds, species, classes, all`);
+        console.error(`\n❌ Error: Invalid type "${type}". Valid options: spells, subclasses, feats, backgrounds, species, classes, spell-progression, all`);
         process.exit(1);
       }
     }
@@ -1642,6 +1922,9 @@ async function main(): Promise<void> {
       } else if (type === 'classes') {
         console.log('📜 Scraping classes...\n');
         await scrapeClasses(browser);
+      } else if (type === 'spell-progression') {
+        console.log('📜 Scraping spell progression data...\n');
+        await scrapeSpellProgression(browser);
       }
       
       // Add separator between types (except after last)

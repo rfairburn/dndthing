@@ -8,6 +8,8 @@ React + TypeScript character generator for Dungeons & Dragons 2024 SRD with Wiza
 
 **Important**: When information in the SRD PDF is incomplete or conflicts with http://dnd2024.wikidot.com/, the wikidot site remains the ultimate authoritative source.
 
+**Critical Warning**: Charts and tables inside the SRD PDF (including spell slot progression tables, class feature tables, etc.) are **known to be incorrect**. Always verify numerical data against wikidot rather than relying on SRD PDF charts/tables.
+
 ### Artificer Class Note
 Artificer is **NOT included in the official SRD PDF**. For complete Artificer rules, use:
 - Primary source: http://dnd2024.wikidot.com/artificer:main
@@ -216,6 +218,22 @@ npx tsx scripts/scrape-dnd2024.ts --types "spells,subclasses"
 npx tsx scripts/scrape-dnd2024.ts --types spells --items fireball,magic-missile --continue-on-error
 ```
 
+### Testing with Limited Data
+Always use `--max-items` or `--items` for testing to avoid full scrapes:
+
+```bash
+# Test scrape first N items of a type (recommended)
+npx tsx scripts/scrape-dnd2024.ts --types spells --max-items 5
+npx tsx scripts/scrape-dnd2024.ts --types subclasses --max-items 3
+npx tsx scripts/scrape-dnd2024.ts --types spell-progression --max-items 2
+
+# Test specific items by name (useful for debugging individual entries)
+npx tsx scripts/scrape-dnd2024.ts --types spells --items fireball,magic-missile,healing-word
+npx tsx scripts/scrape-dnd2024.ts --types subclasses --items alchemist,battle-smith
+
+# All parameters work with all types: spells, subclasses, feats, backgrounds, species, classes, spell-progression
+```
+
 ---
 
 ## Code Quality Checklist
@@ -276,10 +294,13 @@ npm run query:srd "species traits"
 ```
 
 ### When to Reference
-- **Character creation flow**: Verify species → background → ability scores order
-- **Spellcasting rules**: Confirm cantrip/spellbook/prepared spell mechanics  
-- **Background stat bonuses**: Check +3 distribution rules (+2/+1 or +1/+1/+1)
-- **Equipment/proficiencies**: Validate what backgrounds grant
+The SRD PDF is only for looking up game mechanics when wikidot does not have the information. Always check wikidot first:
+- **Character creation flow**: Verify species → background → ability scores order (wikidot)
+- **Spellcasting rules**: Confirm cantrip/spellbook/prepared spell mechanics (wikidot)  
+- **Background stat bonuses**: Check +3 distribution rules (+2/+1 or +1/+1/+1) (wikidot)
+- **Equipment/proficiencies**: Validate what backgrounds grant (wikidot)
+
+**Never use SRD PDF charts/tables for numerical data** - they are known to be incorrect. Use wikidot for all spell slots, class features, and progression tables.
 
 ### Parsed Output Location (Not Committed)
 - `rules-reference/srd-text.json` - Structured sections (searchable)
