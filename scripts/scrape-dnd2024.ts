@@ -1642,7 +1642,7 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
             text.includes('determine your available spell slots')
           );
           
-          const hasSpellcasting = hasMulticlassingReference;
+          const needsMulticlassFallback = hasMulticlassingReference;
           
         // Extract spellcasting ability from Core Traits table first
            const coreTraitsTable = document.querySelector('table.wiki-content-table');
@@ -1732,10 +1732,10 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
           }
           
           const casterType = hasArtificerPattern ? 'half' : result.casterType;
-          return { data: result, hasSpellcasting, casterType };
+          return { data: result, needsMulticlassFallback, casterType };
         });
         
-     const { data: progressData, casterType: casterTypeFromPage } = pageData;
+     const { data: progressData, needsMulticlassFallback, casterType: casterTypeFromPage } = pageData;
         
         if (!progressData) {
           console.warn(`\n⚠️  ${className}: Failed to extract spell progression data`);
@@ -1745,7 +1745,7 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
         
         // Prefer the class-page detection when present. Otherwise use the
         // multiclassing-page map for known full/half casters.
-        const casterType = casterTypeFromPage || casterTypeMap[className] || null;
+        const casterType = casterTypeFromPage ?? (needsMulticlassFallback ? casterTypeMap[className] ?? null : null);
         if (casterTypeFromPage) {
           console.log(`  ✓ Found caster type from class page directly: ${className}:${casterTypeFromPage}`);
         }
