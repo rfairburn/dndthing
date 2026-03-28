@@ -1488,48 +1488,8 @@ async function getCasterTypesFromMulticlassingPage(browser: puppeteer.Browser): 
   
   await page.close();
   
-  console.log(`    DEBUG: Full item="${pageResult.debug.fullItem}"`);
-  console.log(`    DEBUG: Half item="${pageResult.debug.halfItem}"`);
-  if (pageResult.debug.fullItem) {
-    const startMarker = 'all your levels in the ';
-    const endMarker = ' classes';
-    const startIdx = pageResult.debug.fullItem.indexOf(startMarker);
-    const startIdx2 = startIdx + startMarker.length;
-    const endIdx = pageResult.debug.fullItem.indexOf(endMarker);
-    console.log(`    DEBUG: startIdx=${startIdx}, startIdx2=${startIdx2}, endIdx=${endIdx}, len=${pageResult.debug.fullItem.length}`);
-    if (startIdx >= 0 && endIdx > startIdx2) {
-      const classesStr = pageResult.debug.fullItem.substring(startIdx2, endIdx).trim();
-      console.log(`    DEBUG: full classesStr="${classesStr}"`);
-      const classes = classesStr.split(/,\s*(?:and\s*)?/).map(c => c.trim()).filter(c => c && c.length > 0);
-      console.log(`    DEBUG: full classes=${classes.join(', ')}`);
-    }
-  }
-  if (pageResult.debug.halfItem) {
-    const startMarker = 'half your levels (round up) in the ';
-    const endMarker = ' classes';
-    const startIdx = pageResult.debug.halfItem.indexOf(startMarker);
-    const startIdx2 = startIdx + startMarker.length;
-    const endIdx = pageResult.debug.halfItem.indexOf(endMarker);
-    console.log(`    DEBUG: half startIdx=${startIdx}, startIdx2=${startIdx2}, endIdx=${endIdx}, len=${pageResult.debug.halfItem.length}`);
-    if (startIdx >= 0 && endIdx > startIdx2) {
-      const classesStr = pageResult.debug.halfItem.substring(startIdx2, endIdx).trim();
-      console.log(`    DEBUG: half classesStr="${classesStr}"`);
-      const classes = classesStr.split(/ and /).map(c => c.trim()).filter(c => c && c.length > 0);
-      console.log(`    DEBUG: half classes=${classes.join(', ')}`);
-    }
-  }
-  
-  console.log(`    DEBUG: List items: ${pageResult.listItems.length}`);
-  pageResult.listItems.forEach((item, i) => {
-    console.log(`    DEBUG: Item ${i}: "${item.substring(0, 80)}..."`);
-  });
-  if (pageResult.debug) {
-    console.log(`    DEBUG: Full item: "${pageResult.debug.fullItem || 'NOT FOUND'}"`);
-    console.log(`    DEBUG: Half item: "${pageResult.debug.halfItem || 'NOT FOUND'}"`);
-  }
-  
   const casterTypes = pageResult.result;
-  console.log(`  ✓ Found caster types: ${Object.entries(casterTypes).map(([k, v]) => `${k}:${v}`).join(', ')}`);
+  console.log(`  ✓ Found caster types from multiclassing page: ${Object.entries(casterTypes).map(([k, v]) => `${k}:${v}`).join(', ')}`);
   
   return casterTypes;
 }
@@ -1542,6 +1502,7 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
   try {
     // Step 1: Get caster type mapping from multiclassing page
     const casterTypeMap = await getCasterTypesFromMulticlassingPage(browser);
+    const combinedCasterTypes: Record<string, 'full' | 'half'> = { ...casterTypeMap };
     
     // Step 2: Extract unified spell slots from the multiclass table
     console.log(`\n📋 Extracting unified spell slots from multiclass table...`);
@@ -1664,44 +1625,21 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
           const content = document.querySelector('#page-content');
           if (!content) return { data: null, hasSpellcasting: false };
           
-          // Check for multiclassing spell slots reference
-          const paragraphTexts = Array.from(document.querySelectorAll('.main-content p')).map(p => p.textContent || '');
+          // Check for multiclassing spell slots reference. Some classes, including
+          // Artificer, put this text in list items rather than paragraphs.
+          const spellcastingReferenceTexts = Array.from(content.querySelectorAll('p, li')).map(node => node.textContent || '');
+          const paragraphTexts = Array.from(content.querySelectorAll('p')).map(p => p.textContent || '');
           
-        // FIRST: Check artificer-specific pattern - if found, immediately return half-caster
-          const hasArtificerPattern = paragraphTexts.some(p => 
-            p.includes('determine your available spell slots, adding half your Artificer levels')
+        // Detect Artificer's multiclass half-caster language from the class page.
+          const hasArtificerPattern = spellcastingReferenceTexts.some(text => 
+            text.includes('determine your available spell slots') &&
+            text.includes('adding half your Artificer levels')
           );
           
-          if (hasArtificerPattern) {
-            // Extract spellcasting ability from Core Traits table
-            const coreTraitsTable = document.querySelector('table.wiki-content-table');
-            if (coreTraitsTable) {
-              const rows = coreTraitsTable.querySelectorAll('tr');
-              rows.forEach(row => {
-                const cells = row.querySelectorAll('td, th');
-                if (cells.length >= 2) {
-                  const label = cells[0].textContent?.toLowerCase();
-                  if (label && label.includes('primary ability')) {
-                    result.spellcastingAbility = cells[1]?.textContent?.trim().toLowerCase() || '';
-                  }
-                }
-              });
-            }
-            
-            // Return immediately with casterType = 'half'
-            const debugInfo = { paragraphCount: paragraphTexts.length };
-            return { 
-              data: result, 
-              hasSpellcasting: true,
-              casterType: 'half',
-              debugInfo
-            };
-          }
-          
           // SECOND: Check general multiclassing reference for other casters
-          const hasMulticlassingReference = paragraphTexts.some(p => 
-            p.includes('See the multiclassing rules') && 
-            p.includes('determine your available spell slots')
+          const hasMulticlassingReference = spellcastingReferenceTexts.some(text => 
+            text.includes('See the multiclassing rules') && 
+            text.includes('determine your available spell slots')
           );
           
           const hasSpellcasting = hasMulticlassingReference;
@@ -1793,10 +1731,11 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
             }
           }
           
-         return { data: result, hasSpellcasting, casterType: result.casterType, debugInfo };
+          const casterType = hasArtificerPattern ? 'half' : result.casterType;
+          return { data: result, hasSpellcasting, casterType };
         });
         
-     const { data: progressData, hasSpellcasting, casterType: casterTypeFromPage, debugInfo } = pageData;
+     const { data: progressData, casterType: casterTypeFromPage } = pageData;
         
         if (!progressData) {
           console.warn(`\n⚠️  ${className}: Failed to extract spell progression data`);
@@ -1804,12 +1743,15 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
           continue;
         }
         
-      // Debug: Print detection results
-          console.log(`    [DEBUG] ${className}: hasSpellcasting=${hasSpellcasting}`);
-        
-        // Build class entry with casterType
-        // If artificer was detected, use casterTypeFromPage ('half'), otherwise look up from casterTypeMap
-        const casterType = casterTypeFromPage || (hasSpellcasting ? casterTypeMap[className] || null : null);
+        // Prefer the class-page detection when present. Otherwise use the
+        // multiclassing-page map for known full/half casters.
+        const casterType = casterTypeFromPage || casterTypeMap[className] || null;
+        if (casterTypeFromPage) {
+          console.log(`  ✓ Found caster type from class page directly: ${className}:${casterTypeFromPage}`);
+        }
+        if (casterType) {
+          combinedCasterTypes[className] = casterType;
+        }
         spellProgression[className] = {
           name: className,
           spellcastingAbility: progressData.spellcastingAbility,
@@ -1831,6 +1773,8 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
         }
       }
     }
+
+    console.log(`\n  ✓ Found caster types: ${Object.entries(combinedCasterTypes).map(([k, v]) => `${k}:${v}`).join(', ')}`);
     
     const outputPath = 'src/data/spell-progression.json';
     
