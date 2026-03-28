@@ -1465,7 +1465,6 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
             name: '',
             spellcastingAbility: '',
             cantripsKnown: [] as number[],
-            spellsPreparedFormula: '',
             spellsPrepared: [] as number[], // Fixed chart values (e.g., Bard)
             spellSlots: {} as Record<number, number[]>,
             spellSlotLevels: {} as Record<number, number>, // Maps column index to slot level
@@ -1570,9 +1569,6 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
                   const preparedVal = cells[preparedSpellsColIndex]?.textContent?.trim();
                   if (/^\d+$/.test(preparedVal)) {
                     result.spellsPrepared[level - 1] = parseInt(preparedVal, 10);
-                  } else if (preparedVal && !/^\d+$/.test(preparedVal)) {
-                    // Store formula text if it's not a number (e.g., "level + modifier")
-                    result.spellsPreparedFormula = preparedVal;
                   }
                 }
                 
@@ -1596,28 +1592,8 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
                     }
                   }
                 }
-              }
-              
-// Extract spells prepared formula from text description (only if not already set by table values)
-                const spellcastingSection = Array.from(document.querySelectorAll('.main-content p')).join('\n');
-                
-                for (const para of paragraphTexts) {
-                  if (!result.spellsPreparedFormula && para.includes('Prepared Spells') && para.includes('increases')) {
-                    // Look for pattern like "as shown in the Prepared Spells column"
-                    result.spellsPreparedFormula = 'level + modifier';
-                    
-                    // Check for specific formulas
-                    if (para.includes('Intelligence modifier') || 
-                        para.includes('Wisdom modifier') || 
-                        para.includes('Charisma modifier')) {
-                      const abilityMatch = para.match(/(Intelligence|Wisdom|Charisma)/i);
-                      if (abilityMatch) {
-                        result.spellsPreparedFormula = `${abilityMatch[1]} modifier + level`;
-                      }
-                    }
-                  }
-                }
-              
+}
+               
 // Check for base spells known (for Sorcerer/Bard who know specific number)
                if (allParagraphs.includes('choose') && allParagraphs.includes('level 1')) {
                  const initialSpellsMatch = allParagraphs.match(/choose\s+(\d+)\s+level\s+\d+/i);
@@ -1639,16 +1615,15 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
           continue;
         }
         
-        // Transform data: convert object-based spellSlots to array format and remove helper fields
-const transformedData: any = {
-  name: className,
-  spellcastingAbility: progressData.spellcastingAbility,
-  cantripsKnown: progressData.cantripsKnown,
-  spellsPreparedFormula: progressData.spellsPreparedFormula,
-  spellsPrepared: progressData.spellsPrepared,
-  baseSpellsKnown: progressData.baseSpellsKnown,
-  spellSlots: [] as number[][]
-};
+// Transform data: convert object-based spellSlots to array format and remove helper fields
+        const transformedData: any = {
+          name: className,
+          spellcastingAbility: progressData.spellcastingAbility,
+          cantripsKnown: progressData.cantripsKnown,
+          spellsPrepared: progressData.spellsPrepared,
+          baseSpellsKnown: progressData.baseSpellsKnown,
+          spellSlots: [] as number[][]
+        };
         
         // Debug: log extracted data
         console.log(`  Extracted: ability=${transformedData.spellcastingAbility}, cantrips=${transformedData.cantripsKnown.length}, slots=${transformedData.spellSlots.length}`);

@@ -3,7 +3,6 @@
     "name": "artificer",
     "spellcastingAbility": "intelligence",
     "cantripsKnown": [2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4],
-    "spellsPreparedFormula": "level + modifier",
     "spellsPrepared": [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
     "baseSpellsKnown": [],
     "spellSlots": [
@@ -18,7 +17,6 @@
     "name": "barbarian",
     "spellcastingAbility": "strength",
     "cantripsKnown": [],
-    "spellsPreparedFormula": "",
     "spellsPrepared": [],
     "baseSpellsKnown": [],
     "spellSlots": []
@@ -27,7 +25,6 @@
     "name": "bard",
     "spellcastingAbility": "charisma",
     "cantripsKnown": [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    "spellsPreparedFormula": "level + modifier",
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
     "baseSpellsKnown": [],
     "spellSlots": [
@@ -46,7 +43,6 @@
     "name": "cleric",
     "spellcastingAbility": "wisdom",
     "cantripsKnown": [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-    "spellsPreparedFormula": "level + modifier",
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
     "baseSpellsKnown": [],
     "spellSlots": [
@@ -65,7 +61,6 @@
     "name": "druid",
     "spellcastingAbility": "wisdom",
     "cantripsKnown": [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-    "spellsPreparedFormula": "level + modifier",
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
     "baseSpellsKnown": [],
     "spellSlots": [
@@ -84,7 +79,6 @@
     "name": "fighter",
     "spellcastingAbility": "strength or dexterity",
     "cantripsKnown": [],
-    "spellsPreparedFormula": "",
     "spellsPrepared": [],
     "baseSpellsKnown": [],
     "spellSlots": []
@@ -93,7 +87,6 @@
     "name": "monk",
     "spellcastingAbility": "dexterity and wisdom",
     "cantripsKnown": [],
-    "spellsPreparedFormula": "",
     "spellsPrepared": [],
     "baseSpellsKnown": [],
     "spellSlots": []
@@ -102,7 +95,6 @@
     "name": "paladin",
     "spellcastingAbility": "charisma",
     "cantripsKnown": [],
-    "spellsPreparedFormula": "level + modifier",
     "spellsPrepared": [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
     "baseSpellsKnown": [],
     "spellSlots": [
@@ -117,7 +109,6 @@
     "name": "ranger",
     "spellcastingAbility": "wisdom",
     "cantripsKnown": [],
-    "spellsPreparedFormula": "level + modifier",
     "spellsPrepared": [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
     "baseSpellsKnown": [],
     "spellSlots": [
@@ -132,7 +123,6 @@
     "name": "rogue",
     "spellcastingAbility": "dexterity",
     "cantripsKnown": [],
-    "spellsPreparedFormula": "",
     "spellsPrepared": [],
     "baseSpellsKnown": [],
     "spellSlots": []
@@ -141,7 +131,6 @@
     "name": "sorcerer",
     "spellcastingAbility": "charisma",
     "cantripsKnown": [4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
-    "spellsPreparedFormula": "level + modifier",
     "spellsPrepared": [2, 4, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
     "baseSpellsKnown": [],
     "spellSlots": [
@@ -160,7 +149,6 @@
     "name": "warlock",
     "spellcastingAbility": "charisma",
     "cantripsKnown": [],
-    "spellsPreparedFormula": "",
     "spellsPrepared": [],
     "baseSpellsKnown": [],
     "spellSlots": []
@@ -169,7 +157,6 @@
     "name": "wizard",
     "spellcastingAbility": "intelligence",
     "cantripsKnown": [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-    "spellsPreparedFormula": "level + modifier",
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 18, 19, 21, 22, 23, 24, 25],
     "baseSpellsKnown": [],
     "spellSlots": [

@@ -5,7 +5,7 @@
   "type": "array",
   "items": {
     "type": "object",
-    "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPreparedFormula", "spellSlots"],
+    "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "spellSlots"],
     "properties": {
       "name": {
         "type": "string",
@@ -14,8 +14,7 @@
       },
       "spellcastingAbility": {
         "type": "string",
-        "enum": ["intelligence", "wisdom", "charisma"],
-        "description": "Primary spellcasting ability for the class"
+        "description": "Primary spellcasting ability for the class (e.g., 'intelligence', 'strength or dexterity')"
       },
       "cantripsKnown": {
         "type": "array",
@@ -23,13 +22,7 @@
           "type": "integer",
           "minimum": 0
         },
-        "minItems": 20,
-        "maxItems": 20,
-        "description": "Number of cantrips known at each character level (index = level - 1)"
-      },
-      "spellsPreparedFormula": {
-        "type": "string",
-        "description": "Formula for calculating spells prepared (e.g., 'level + modifier') or empty string if using fixed chart"
+        "description": "Number of cantrips known at each character level (index = level - 1), empty array for non-spellcasting classes"
       },
       "spellsPrepared": {
         "type": "array",
@@ -37,9 +30,7 @@
           "type": "integer",
           "minimum": 0
         },
-        "minItems": 20,
-        "maxItems": 20,
-        "description": "Number of spells prepared at each character level (index = level - 1), used for classes with fixed charts like Bard"
+        "description": "Number of spells prepared at each character level (index = level - 1), empty array for non-spellcasting classes"
       },
       "spellSlots": {
         "type": "array",
@@ -70,7 +61,6 @@
       "name": "bard",
       "spellcastingAbility": "charisma",
       "cantripsKnown": [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-      "spellsPreparedFormula": "level + modifier",
       "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
       "spellSlots": [
         [2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
@@ -89,7 +79,6 @@
       "name": "wizard",
       "spellcastingAbility": "intelligence",
       "cantripsKnown": [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-      "spellsPreparedFormula": "level + modifier",
       "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 18, 19, 21, 22, 23, 24, 25],
       "spellSlots": [
         [2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
@@ -107,7 +96,6 @@
       "name": "warlock",
       "spellcastingAbility": "charisma",
       "cantripsKnown": [2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-      "spellsPreparedFormula": "level + modifier",
       "spellsPrepared": [2, 3, 4, 4, 5, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
       "spellSlots": [
         [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
@@ -121,7 +109,6 @@
       "name": "artificer",
       "spellcastingAbility": "intelligence",
       "cantripsKnown": [2, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6, 6],
-      "spellsPreparedFormula": "level + modifier",
       "spellsPrepared": [2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
       "spellSlots": [
         [2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
