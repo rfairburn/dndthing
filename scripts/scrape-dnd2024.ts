@@ -1681,7 +1681,47 @@ console.log(`  ✓ Scraped ${className} spell progression`);
     }
     
     const outputPath = 'src/data/spell-progression.json';
-    fs.writeFileSync(outputPath, JSON.stringify(spellProgression, null, 2));
+    
+    // Custom JSON serializer that keeps 1D arrays compact, 2D+ arrays multiline
+    function serializeCompactArrays(obj: any, indent: number = 0): string {
+      const spaces = '  '.repeat(indent);
+      const nextSpaces = '  '.repeat(indent + 1);
+      
+      if (Array.isArray(obj)) {
+        if (obj.length === 0) return '[]';
+        
+        // Check if this is a 1D array (all elements are primitives) or 2D+ array
+        const is1DArray = obj.every(item => typeof item === 'number' || typeof item === 'string' || typeof item === 'boolean' || item === null);
+        
+        if (is1DArray) {
+          // Compact 1D array on single line
+          return '[' + obj.map(item => 
+            typeof item === 'number' ? String(item) : JSON.stringify(item)
+          ).join(', ') + ']';
+        } else {
+          // 2D+ array: multi-line with compact inner arrays
+          const items = obj.map(item => nextSpaces + serializeCompactArrays(item, indent + 1));
+          return '[\n' + items.join(',\n') + '\n' + spaces + ']';
+        }
+      }
+      
+      if (obj !== null && typeof obj === 'object') {
+        const keys = Object.keys(obj);
+        if (keys.length === 0) return '{}';
+        
+        const props = keys.map(key => {
+          const value = obj[key];
+          const serialized = serializeCompactArrays(value, indent + 1);
+          return `${nextSpaces}"${key}": ${serialized}`;
+        });
+        
+        return '{\n' + props.join(',\n') + '\n' + spaces + '}';
+      }
+      
+      return JSON.stringify(obj);
+    }
+    
+    fs.writeFileSync(outputPath, serializeCompactArrays(spellProgression));
     console.log(`\n\n✓ Final output saved to ${outputPath}`);
     
     printSummary(successCount.value, warningCount.value, errorCount.value, classNames.length);
