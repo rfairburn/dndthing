@@ -1650,14 +1650,15 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
         const page = await browser.newPage();
         await page.setContent(html);
         
-        // Parse spell progression data and check for multiclassing reference
+       // Parse spell progression data and check for multiclassing reference
         const pageData = await page.evaluate((classParam: string) => {
           const result: any = {
             name: '',
             spellcastingAbility: '',
             cantripsKnown: [] as number[],
             spellsPrepared: [] as number[],
-            baseSpellsKnown: [] as number[]
+            baseSpellsKnown: [] as number[],
+            casterType: null as 'full' | 'half' | null
           };
           
           const content = document.querySelector('#page-content');
@@ -1665,9 +1666,45 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
           
           // Check for multiclassing spell slots reference
           const paragraphTexts = Array.from(document.querySelectorAll('.main-content p')).map(p => p.textContent || '');
-          const hasSpellcasting = paragraphTexts.some(p => 
-            p.includes('multiclassing') && p.includes('spell slots')
+          
+        // FIRST: Check artificer-specific pattern - if found, immediately return half-caster
+          const hasArtificerPattern = paragraphTexts.some(p => 
+            p.includes('determine your available spell slots, adding half your Artificer levels')
           );
+          
+          if (hasArtificerPattern) {
+            // Extract spellcasting ability from Core Traits table
+            const coreTraitsTable = document.querySelector('table.wiki-content-table');
+            if (coreTraitsTable) {
+              const rows = coreTraitsTable.querySelectorAll('tr');
+              rows.forEach(row => {
+                const cells = row.querySelectorAll('td, th');
+                if (cells.length >= 2) {
+                  const label = cells[0].textContent?.toLowerCase();
+                  if (label && label.includes('primary ability')) {
+                    result.spellcastingAbility = cells[1]?.textContent?.trim().toLowerCase() || '';
+                  }
+                }
+              });
+            }
+            
+            // Return immediately with casterType = 'half'
+            const debugInfo = { paragraphCount: paragraphTexts.length };
+            return { 
+              data: result, 
+              hasSpellcasting: true,
+              casterType: 'half',
+              debugInfo
+            };
+          }
+          
+          // SECOND: Check general multiclassing reference for other casters
+          const hasMulticlassingReference = paragraphTexts.some(p => 
+            p.includes('See the multiclassing rules') && 
+            p.includes('determine your available spell slots')
+          );
+          
+          const hasSpellcasting = hasMulticlassingReference;
           
         // Extract spellcasting ability from Core Traits table first
            const coreTraitsTable = document.querySelector('table.wiki-content-table');
@@ -1756,10 +1793,10 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
             }
           }
           
-         return { data: result, hasSpellcasting };
+         return { data: result, hasSpellcasting, casterType: result.casterType, debugInfo };
         });
         
-        const { data: progressData, hasSpellcasting } = pageData;
+     const { data: progressData, hasSpellcasting, casterType: casterTypeFromPage, debugInfo } = pageData;
         
         if (!progressData) {
           console.warn(`\n⚠️  ${className}: Failed to extract spell progression data`);
@@ -1767,8 +1804,12 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
           continue;
         }
         
+      // Debug: Print detection results
+          console.log(`    [DEBUG] ${className}: hasSpellcasting=${hasSpellcasting}`);
+        
         // Build class entry with casterType
-        const casterType = hasSpellcasting ? casterTypeMap[className] || null : null;
+        // If artificer was detected, use casterTypeFromPage ('half'), otherwise look up from casterTypeMap
+        const casterType = casterTypeFromPage || (hasSpellcasting ? casterTypeMap[className] || null : null);
         spellProgression[className] = {
           name: className,
           spellcastingAbility: progressData.spellcastingAbility,
