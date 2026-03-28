@@ -3,6 +3,8 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "license": "MIT",
+  "dataLicense": "CC-BY-SA-3.0+OGL-1.0a",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

@@ -1882,7 +1882,7 @@ async function main(): Promise<void> {
   // Parse comma-separated types or use default
   let scrapeTypes: ScrapeType[];
   if (typesInput === 'all') {
-    scrapeTypes = ['spells', 'subclasses', 'feats', 'backgrounds'];
+    scrapeTypes = ['spells', 'subclasses', 'feats', 'backgrounds', 'species', 'spell-progression'];
   } else {
     scrapeTypes = typesInput.split(',').map(t => t.trim()) as ScrapeType[];
     
