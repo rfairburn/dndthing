@@ -1419,13 +1419,131 @@ async function getAllClassNames(browser: puppeteer.Browser): Promise<string[]> {
   return classLinks;
 }
 
+async function getCasterTypesFromMulticlassingPage(browser: puppeteer.Browser): Promise<Record<string, 'full' | 'half'>> {
+  console.log(`  📋 Extracting caster types from multiclassing page...`);
+  
+  const multiclassHtml = await fetchPageHtml('http://dnd2024.wikidot.com/class:multiclassing');
+  const page = await browser.newPage();
+  await page.setContent(multiclassHtml);
+  
+  const pageResult = await page.evaluate(() => {
+    const result: Record<string, 'full' | 'half'> = {};
+    
+    // Look for the Spell Slots section (it's in a list, not a paragraph)
+    const spellSlotsHeader = Array.from(document.querySelectorAll('.main-content h3, .main-content h4'))
+      .find(h => h.textContent?.includes('Spell Slots') && h.textContent?.includes('Multiclass'));
+    
+    if (!spellSlotsHeader) {
+      return { result, listItems: [], debug: 'No header found' };
+    }
+    
+    // Get the list that follows
+    const list = spellSlotsHeader.parentElement?.querySelector('ul');
+    if (!list) {
+      return { result, listItems: [], debug: 'No list found' };
+    }
+    
+    // Process each list item separately
+    const listItems = Array.from(list.querySelectorAll('li')).map(li => li.textContent || '');
+    const listItemsLower = listItems.map(item => item.toLowerCase());
+    
+    // Full casters: "All your levels in the Bard, Cleric, Druid, Sorcerer, and Wizard classes"
+    const fullItem = listItemsLower.find(li => li.includes('all your levels in the'));
+    if (fullItem) {
+      const startMarker = 'all your levels in the ';
+      const endMarker = ' classes';
+      const startIdx = fullItem.indexOf(startMarker);
+      const endIdx = fullItem.indexOf(endMarker);
+      if (startIdx >= 0 && endIdx > startIdx + startMarker.length) {
+        const classesStr = fullItem.substring(startIdx + startMarker.length, endIdx).trim();
+        // Split by ", " or ", and"
+        const classes = classesStr.split(/,\s*(?:and\s*)?/).map(c => c.trim()).filter(c => c && c.length > 0);
+        classes.forEach(cls => result[cls] = 'full');
+      }
+    }
+    
+    // Half casters: "Half your levels (round up) in the Paladin and Ranger classes"
+    const halfItem = listItemsLower.find(li => li.includes('half your levels (round up) in the'));
+    if (halfItem) {
+      const startMarker = 'half your levels (round up) in the ';
+      const endMarker = ' classes';
+      const startIdx = halfItem.indexOf(startMarker);
+      const endIdx = halfItem.indexOf(endMarker);
+      if (startIdx >= 0 && endIdx > startIdx + startMarker.length) {
+        const classesStr = halfItem.substring(startIdx + startMarker.length, endIdx).trim();
+        // Split by " and "
+        const classes = classesStr.split(/ and /).map(c => c.trim()).filter(c => c && c.length > 0);
+        classes.forEach(cls => result[cls] = 'half');
+      }
+    }
+    
+    // Artificer special case: "adding half your Artificer levels (round up)"
+    const artificerItem = listItemsLower.find(li => li.includes('adding half your artificer levels'));
+    if (artificerItem) {
+      result['artificer'] = 'half';
+    }
+    
+    return { result, listItems, debug: { fullItem, halfItem } };
+  });
+  
+  await page.close();
+  
+  console.log(`    DEBUG: Full item="${pageResult.debug.fullItem}"`);
+  console.log(`    DEBUG: Half item="${pageResult.debug.halfItem}"`);
+  if (pageResult.debug.fullItem) {
+    const startMarker = 'all your levels in the ';
+    const endMarker = ' classes';
+    const startIdx = pageResult.debug.fullItem.indexOf(startMarker);
+    const startIdx2 = startIdx + startMarker.length;
+    const endIdx = pageResult.debug.fullItem.indexOf(endMarker);
+    console.log(`    DEBUG: startIdx=${startIdx}, startIdx2=${startIdx2}, endIdx=${endIdx}, len=${pageResult.debug.fullItem.length}`);
+    if (startIdx >= 0 && endIdx > startIdx2) {
+      const classesStr = pageResult.debug.fullItem.substring(startIdx2, endIdx).trim();
+      console.log(`    DEBUG: full classesStr="${classesStr}"`);
+      const classes = classesStr.split(/,\s*(?:and\s*)?/).map(c => c.trim()).filter(c => c && c.length > 0);
+      console.log(`    DEBUG: full classes=${classes.join(', ')}`);
+    }
+  }
+  if (pageResult.debug.halfItem) {
+    const startMarker = 'half your levels (round up) in the ';
+    const endMarker = ' classes';
+    const startIdx = pageResult.debug.halfItem.indexOf(startMarker);
+    const startIdx2 = startIdx + startMarker.length;
+    const endIdx = pageResult.debug.halfItem.indexOf(endMarker);
+    console.log(`    DEBUG: half startIdx=${startIdx}, startIdx2=${startIdx2}, endIdx=${endIdx}, len=${pageResult.debug.halfItem.length}`);
+    if (startIdx >= 0 && endIdx > startIdx2) {
+      const classesStr = pageResult.debug.halfItem.substring(startIdx2, endIdx).trim();
+      console.log(`    DEBUG: half classesStr="${classesStr}"`);
+      const classes = classesStr.split(/ and /).map(c => c.trim()).filter(c => c && c.length > 0);
+      console.log(`    DEBUG: half classes=${classes.join(', ')}`);
+    }
+  }
+  
+  console.log(`    DEBUG: List items: ${pageResult.listItems.length}`);
+  pageResult.listItems.forEach((item, i) => {
+    console.log(`    DEBUG: Item ${i}: "${item.substring(0, 80)}..."`);
+  });
+  if (pageResult.debug) {
+    console.log(`    DEBUG: Full item: "${pageResult.debug.fullItem || 'NOT FOUND'}"`);
+    console.log(`    DEBUG: Half item: "${pageResult.debug.halfItem || 'NOT FOUND'}"`);
+  }
+  
+  const casterTypes = pageResult.result;
+  console.log(`  ✓ Found caster types: ${Object.entries(casterTypes).map(([k, v]) => `${k}:${v}`).join(', ')}`);
+  
+  return casterTypes;
+}
+
 async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void> {
   const successCount = { value: 0 };
   const warningCount = { value: 0 };
   const errorCount = { value: 0 };
   
   try {
-    // First, extract unified spell slots from the multiclass table
+    // Step 1: Get caster type mapping from multiclassing page
+    const casterTypeMap = await getCasterTypesFromMulticlassingPage(browser);
+    
+    // Step 2: Extract unified spell slots from the multiclass table
     console.log(`\n📋 Extracting unified spell slots from multiclass table...`);
     
     let unifiedSpellSlots: Record<string, number[]> = {};
@@ -1532,8 +1650,8 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
         const page = await browser.newPage();
         await page.setContent(html);
         
-        // Parse spell progression data from HTML
-        const progressData: any = await page.evaluate(() => {
+        // Parse spell progression data and check for multiclassing reference
+        const pageData = await page.evaluate((classParam: string) => {
           const result: any = {
             name: '',
             spellcastingAbility: '',
@@ -1543,33 +1661,38 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
           };
           
           const content = document.querySelector('#page-content');
-          if (!content) return null;
+          if (!content) return { data: null, hasSpellcasting: false };
           
-          // Extract spellcasting ability from Core Traits table first
-          const coreTraitsTable = document.querySelector('table.wiki-content-table');
-          if (coreTraitsTable) {
-            const rows = coreTraitsTable.querySelectorAll('tr');
-            rows.forEach(row => {
-              const cells = row.querySelectorAll('td, th');
-              if (cells.length >= 2) {
-                const label = cells[0].textContent?.toLowerCase();
-                if (label && label.includes('primary ability')) {
-                  result.spellcastingAbility = cells[1]?.textContent?.trim().toLowerCase() || '';
-                }
-              }
-            });
-          }
-          
-          // Refine spellcasting ability from text description
+          // Check for multiclassing spell slots reference
           const paragraphTexts = Array.from(document.querySelectorAll('.main-content p')).map(p => p.textContent || '');
-          const allParagraphs = paragraphTexts.join('\n');
+          const hasSpellcasting = paragraphTexts.some(p => 
+            p.includes('multiclassing') && p.includes('spell slots')
+          );
           
-          if (allParagraphs.includes('Spellcasting Ability')) {
-            const abilityMatch = allParagraphs.match(/Spellcasting Ability\.\s*([A-Z][a-z]+)\s+is\s+your\s+spellcasting\s+ability/i);
-            if (abilityMatch) {
-              result.spellcastingAbility = abilityMatch[1].toLowerCase();
-            }
-          }
+        // Extract spellcasting ability from Core Traits table first
+           const coreTraitsTable = document.querySelector('table.wiki-content-table');
+           if (coreTraitsTable) {
+             const rows = coreTraitsTable.querySelectorAll('tr');
+             rows.forEach(row => {
+               const cells = row.querySelectorAll('td, th');
+               if (cells.length >= 2) {
+                 const label = cells[0].textContent?.toLowerCase();
+                 if (label && label.includes('primary ability')) {
+                   result.spellcastingAbility = cells[1]?.textContent?.trim().toLowerCase() || '';
+                 }
+               }
+             });
+           }
+           
+           // Refine spellcasting ability from text description
+           const allParagraphs = paragraphTexts.join('\n');
+           
+           if (allParagraphs.includes('Spellcasting Ability')) {
+             const abilityMatch = allParagraphs.match(/Spellcasting Ability\.\s*([A-Z][a-z]+)\s+is\s+your\s+spellcasting\s+ability/i);
+             if (abilityMatch) {
+               result.spellcastingAbility = abilityMatch[1].toLowerCase();
+             }
+           }
           
           // Find the spell progression table
           const allTables = document.querySelectorAll('table.wiki-content-table');
@@ -1633,8 +1756,10 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
             }
           }
           
-          return result;
+         return { data: result, hasSpellcasting };
         });
+        
+        const { data: progressData, hasSpellcasting } = pageData;
         
         if (!progressData) {
           console.warn(`\n⚠️  ${className}: Failed to extract spell progression data`);
@@ -1642,10 +1767,12 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
           continue;
         }
         
-        // Build class entry without spellSlots
+        // Build class entry with casterType
+        const casterType = hasSpellcasting ? casterTypeMap[className] || null : null;
         spellProgression[className] = {
           name: className,
           spellcastingAbility: progressData.spellcastingAbility,
+          casterType: casterType,
           cantripsKnown: progressData.cantripsKnown,
           spellsPrepared: progressData.spellsPrepared,
           baseSpellsKnown: progressData.baseSpellsKnown,

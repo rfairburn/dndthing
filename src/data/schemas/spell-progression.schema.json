@@ -25,10 +25,15 @@
     },
     "artificer": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -47,10 +52,15 @@
     },
     "barbarian": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -69,10 +79,15 @@
     },
     "bard": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -91,10 +106,15 @@
     },
     "cleric": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -113,10 +133,15 @@
     },
     "druid": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -135,10 +160,15 @@
     },
     "fighter": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -157,10 +187,15 @@
     },
     "monk": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -179,10 +214,15 @@
     },
     "paladin": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -201,10 +241,15 @@
     },
     "ranger": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -223,10 +268,15 @@
     },
     "rogue": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -245,10 +295,15 @@
     },
     "sorcerer": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -267,10 +322,15 @@
     },
     "warlock": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
@@ -289,10 +349,15 @@
     },
     "wizard": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
+        "casterType": {
+          "type": ["string", "null"],
+          "enum": ["full", "half"],
+          "description": "Caster classification: full, half, or null for non-casters"
+        },
         "cantripsKnown": {
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }

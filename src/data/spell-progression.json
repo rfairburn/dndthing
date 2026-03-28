@@ -24,6 +24,7 @@
   "artificer": {
     "name": "artificer",
     "spellcastingAbility": "intelligence",
+    "casterType": null,
     "cantripsKnown": [2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4],
     "spellsPrepared": [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
     "baseSpellsKnown": [],
@@ -32,6 +33,7 @@
   "barbarian": {
     "name": "barbarian",
     "spellcastingAbility": "strength",
+    "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [],
     "baseSpellsKnown": [],
@@ -40,6 +42,7 @@
   "bard": {
     "name": "bard",
     "spellcastingAbility": "charisma",
+    "casterType": null,
     "cantripsKnown": [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
     "baseSpellsKnown": [],
@@ -48,6 +51,7 @@
   "cleric": {
     "name": "cleric",
     "spellcastingAbility": "wisdom",
+    "casterType": null,
     "cantripsKnown": [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
     "baseSpellsKnown": [],
@@ -56,6 +60,7 @@
   "druid": {
     "name": "druid",
     "spellcastingAbility": "wisdom",
+    "casterType": null,
     "cantripsKnown": [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
     "baseSpellsKnown": [],
@@ -64,6 +69,7 @@
   "fighter": {
     "name": "fighter",
     "spellcastingAbility": "strength or dexterity",
+    "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [],
     "baseSpellsKnown": [],
@@ -72,6 +78,7 @@
   "monk": {
     "name": "monk",
     "spellcastingAbility": "dexterity and wisdom",
+    "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [],
     "baseSpellsKnown": [],
@@ -80,6 +87,7 @@
   "paladin": {
     "name": "paladin",
     "spellcastingAbility": "charisma",
+    "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
     "baseSpellsKnown": [],
@@ -88,6 +96,7 @@
   "ranger": {
     "name": "ranger",
     "spellcastingAbility": "wisdom",
+    "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
     "baseSpellsKnown": [],
@@ -96,6 +105,7 @@
   "rogue": {
     "name": "rogue",
     "spellcastingAbility": "dexterity",
+    "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [],
     "baseSpellsKnown": [],
@@ -104,6 +114,7 @@
   "sorcerer": {
     "name": "sorcerer",
     "spellcastingAbility": "charisma",
+    "casterType": null,
     "cantripsKnown": [4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
     "spellsPrepared": [2, 4, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
     "baseSpellsKnown": [],
@@ -112,6 +123,7 @@
   "warlock": {
     "name": "warlock",
     "spellcastingAbility": "charisma",
+    "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [],
     "baseSpellsKnown": [],
@@ -120,6 +132,7 @@
   "wizard": {
     "name": "wizard",
     "spellcastingAbility": "intelligence",
+    "casterType": null,
     "cantripsKnown": [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 18, 19, 21, 22, 23, 24, 25],
     "baseSpellsKnown": [],
