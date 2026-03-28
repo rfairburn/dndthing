@@ -1,122 +1,314 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "D&D 2024 Spell Progression",
-  "description": "Schema for validating D&D 2024 SRD spell progression data extracted from wikidot.com class pages",
-  "type": "array",
-  "items": {
-    "type": "object",
-    "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "spellSlots"],
-    "properties": {
-      "name": {
-        "type": "string",
-        "minLength": 1,
-        "description": "Class name (e.g., 'bard', 'wizard')"
-      },
-      "spellcastingAbility": {
-        "type": "string",
-        "description": "Primary spellcasting ability for the class (e.g., 'intelligence', 'strength or dexterity')"
-      },
-      "cantripsKnown": {
-        "type": "array",
-        "items": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "description": "Number of cantrips known at each character level (index = level - 1), empty array for non-spellcasting classes"
-      },
-      "spellsPrepared": {
-        "type": "array",
-        "items": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "description": "Number of spells prepared at each character level (index = level - 1), empty array for non-spellcasting classes"
-      },
-      "spellSlots": {
-        "type": "array",
-        "items": {
+  "description": "Schema for validating D&D 2024 SRD spell progression data extracted from wikidot.com",
+  "type": "object",
+  "required": ["unifiedSpellSlots", "artificer", "barbarian", "bard", "cleric", "druid", "fighter", "monk", "paladin", "ranger", "rogue", "sorcerer", "warlock", "wizard"],
+  "properties": {
+    "unifiedSpellSlots": {
+      "type": "object",
+      "description": "Multiclass spellcaster spell slots table - source of truth for all spellcasters",
+      "patternProperties": {
+        "^[1-9][0-9]$": {
           "type": "array",
           "items": {
             "type": "integer",
             "minimum": 0
           },
-          "minItems": 20,
-          "maxItems": 20
-        },
-        "description": "Spell slot progression by spell level (index = spell level - 1, each inner array indexed by character level - 1)"
+          "minItems": 9,
+          "maxItems": 9,
+          "description": "Spell slots by level (indices 0-8 represent spell levels 1-9)"
+        }
       },
-      "baseSpellsKnown": {
-        "type": "array",
-        "items": {
-          "type": "integer",
-          "minimum": 0
+      "minProperties": 20,
+      "maxProperties": 20
+    },
+    "artificer": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
         },
-        "description": "Initial spells known at level 1 (for classes like Bard/Sorcerer)"
-      }
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
     },
-    "additionalProperties": false
-  },
-  "examples": [
-    {
-      "name": "bard",
-      "spellcastingAbility": "charisma",
-      "cantripsKnown": [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-      "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
-      "spellSlots": [
-        [2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-        [0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-        [0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-        [0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-        [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      ],
-      "baseSpellsKnown": []
+    "barbarian": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
     },
-    {
-      "name": "wizard",
-      "spellcastingAbility": "intelligence",
-      "cantripsKnown": [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-      "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 18, 19, 21, 22, 23, 24, 25],
-      "spellSlots": [
-        [2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-        [0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-        [0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-        [0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-        [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-      ]
+    "bard": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
     },
-    {
-      "name": "warlock",
-      "spellcastingAbility": "charisma",
-      "cantripsKnown": [2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-      "spellsPrepared": [2, 3, 4, 4, 5, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
-      "spellSlots": [
-        [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-        [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-        [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-        [0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-      ]
+    "cleric": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
     },
-    {
-      "name": "artificer",
-      "spellcastingAbility": "intelligence",
-      "cantripsKnown": [2, 2, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 6, 6, 6, 6],
-      "spellsPrepared": [2, 3, 4, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-      "spellSlots": [
-        [2, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
-        [0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-        [0, 0, 0, 0, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-        [0, 0, 0, 0, 0, 0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
-        [0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
-      ]
+    "druid": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "fighter": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "monk": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "paladin": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "ranger": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "rogue": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "sorcerer": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "warlock": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
+    },
+    "wizard": {
+      "type": "object",
+      "required": ["name", "spellcastingAbility", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "properties": {
+        "name": { "type": "string" },
+        "spellcastingAbility": { "type": "string" },
+        "cantripsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellsPrepared": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "baseSpellsKnown": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0 }
+        },
+        "spellSlots": { "type": "array" }
+      },
+      "additionalProperties": false
     }
-  ]
+  },
+  "additionalProperties": false
 }

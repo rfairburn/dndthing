@@ -161,23 +161,34 @@ export async function main(): Promise<void> {
   
   console.log(`🔍 Validating ${dataType}.json against JSON Schema...\n`);
   
-  let data: any[];
+  let data: any;
   try {
     const rawData = fs.readFileSync(dataPath, 'utf-8');
     data = JSON.parse(rawData);
     
-    if (!Array.isArray(data)) {
+    // spell-progression is now an object, not an array
+    const isObjectFormat = dataType === 'spell-progression';
+    
+    if (!isObjectFormat && !Array.isArray(data)) {
       throw new Error('Expected array format');
+    }
+    
+    if (isObjectFormat && typeof data !== 'object') {
+      throw new Error('Expected object format');
     }
   } catch (error: any) {
     console.error(`❌ Failed to parse ${dataType}.json: ${error.message}`);
     process.exit(1);
   }
   
-  console.log(`📊 Found ${data.length} ${dataType}\n`);
+  const itemCount = Array.isArray(data) ? data.length : Object.keys(data).length;
+  const displayCount = Array.isArray(data) ? data.length : Object.keys(data).filter(k => k !== 'unifiedSpellSlots').length;
+  console.log(`📊 Found ${displayCount} classes (+ unifiedSpellSlots)\n`);
   
   // Validate
-  const result = validateData(data);
+  // For object format (spell-progression), pass data directly; for array format, pass as array
+  const validationResult = Array.isArray(data) ? data : [data];
+  const result = validateData(validationResult);
   
   // Print statistics
   if (result.stats.total > 0) {
