@@ -1609,6 +1609,11 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
         }
         
         const page = await browser.newPage();
+        
+        await page.evaluate(() => {
+          (window as any).__name = (fn: Function) => fn;
+        });
+        
         await page.setContent(html);
         
        // Parse spell progression data and check for multiclassing reference
@@ -1618,7 +1623,7 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
             spellcastingAbility: '',
             cantripsKnown: [] as number[],
             spellsPrepared: [] as number[],
-            baseSpellsKnown: [] as number[],
+            spellsAddedPerLevel: [] as number[],
             casterType: null as 'full' | 'half' | null
           };
           
@@ -1731,6 +1736,43 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
             }
           }
           
+          function parseNumber(text: string): number {
+            const wordMap: Record<string, number> = {
+              'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+              'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
+              'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14,
+              'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18,
+              'nineteen': 19, 'twenty': 20
+            };
+            
+            const lower = text.toLowerCase();
+            if (wordMap[lower] !== undefined) {
+              return wordMap[lower];
+            }
+            
+            const digit = parseInt(text, 10);
+            return isNaN(digit) ? 0 : digit;
+          }
+          
+          const startMatch = allParagraphs.match(/starts? with ([a-zA-Z0-9\-]+) [level\d\w\s+]* spells?/i);
+          let startCount = 0;
+          if (startMatch) {
+            startCount = parseNumber(startMatch[1]);
+          }
+          
+          const addMatch = allParagraphs.match(/add ([a-zA-Z0-9\-]+) [a-zA-Z]+ spells?.*?to your (spellbook|grimoire)/i);
+          let perLevelAdd = 0;
+          if (addMatch) {
+            perLevelAdd = parseNumber(addMatch[1]);
+          }
+          
+          const hasSpellbookPattern = startMatch || addMatch;
+          const spellsAddedPerLevel = hasSpellbookPattern ? new Array(20).fill(perLevelAdd) : [];
+          if (startCount > 0) {
+            spellsAddedPerLevel[0] = startCount;
+          }
+          result.spellsAddedPerLevel = spellsAddedPerLevel;
+          
           const casterType = hasArtificerPattern ? 'half' : result.casterType;
           return { data: result, needsMulticlassFallback, casterType };
         });
@@ -1758,7 +1800,7 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
           casterType: casterType,
           cantripsKnown: progressData.cantripsKnown,
           spellsPrepared: progressData.spellsPrepared,
-          baseSpellsKnown: progressData.baseSpellsKnown,
+          spellsAddedPerLevel: progressData.spellsAddedPerLevel,
           spellSlots: []
         };
         

@@ -25,7 +25,7 @@
     },
     "artificer": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -44,9 +44,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -54,7 +55,7 @@
     },
     "barbarian": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -73,9 +74,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -83,7 +85,7 @@
     },
     "bard": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -102,9 +104,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -112,7 +115,7 @@
     },
     "cleric": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -131,9 +134,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -141,7 +145,7 @@
     },
     "druid": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -160,9 +164,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -170,7 +175,7 @@
     },
     "fighter": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -189,9 +194,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -199,7 +205,7 @@
     },
     "monk": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -218,9 +224,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -228,7 +235,7 @@
     },
     "paladin": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -247,9 +254,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -257,7 +265,7 @@
     },
     "ranger": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -276,9 +284,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -286,7 +295,7 @@
     },
     "rogue": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -305,9 +314,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -315,7 +325,7 @@
     },
     "sorcerer": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -334,9 +344,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -344,7 +355,7 @@
     },
     "warlock": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -363,9 +374,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },
@@ -373,7 +385,7 @@
     },
     "wizard": {
       "type": "object",
-      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "baseSpellsKnown"],
+      "required": ["name", "spellcastingAbility", "casterType", "cantripsKnown", "spellsPrepared", "spellsAddedPerLevel"],
       "properties": {
         "name": { "type": "string" },
         "spellcastingAbility": { "type": "string" },
@@ -392,9 +404,10 @@
           "type": "array",
           "items": { "type": "integer", "minimum": 0 }
         },
-        "baseSpellsKnown": {
+        "spellsAddedPerLevel": {
           "type": "array",
-          "items": { "type": "integer", "minimum": 0 }
+          "items": { "type": "integer", "minimum": 0 },
+          "description": "Number of spells added to a persistent spellbook/grimoire per level. For wizard: [6, 2, 2, ...] where first value is level 1 starting spells, subsequent values are spells added per level. Non-applicable classes keep empty array []"
         },
         "spellSlots": { "type": "array" }
       },

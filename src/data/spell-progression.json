@@ -27,7 +27,7 @@
     "casterType": "half",
     "cantripsKnown": [2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4],
     "spellsPrepared": [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "barbarian": {
@@ -36,7 +36,7 @@
     "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "bard": {
@@ -45,7 +45,7 @@
     "casterType": "full",
     "cantripsKnown": [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "cleric": {
@@ -54,7 +54,7 @@
     "casterType": "full",
     "cantripsKnown": [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "druid": {
@@ -63,7 +63,7 @@
     "casterType": "full",
     "cantripsKnown": [2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4],
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "fighter": {
@@ -72,7 +72,7 @@
     "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "monk": {
@@ -81,7 +81,7 @@
     "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "paladin": {
@@ -90,7 +90,7 @@
     "casterType": "half",
     "cantripsKnown": [],
     "spellsPrepared": [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "ranger": {
@@ -99,7 +99,7 @@
     "casterType": "half",
     "cantripsKnown": [],
     "spellsPrepared": [2, 3, 4, 5, 6, 6, 7, 7, 9, 9, 10, 10, 11, 11, 12, 12, 14, 14, 15, 15],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "rogue": {
@@ -108,7 +108,7 @@
     "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "sorcerer": {
@@ -117,7 +117,7 @@
     "casterType": "full",
     "cantripsKnown": [4, 4, 4, 5, 5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6],
     "spellsPrepared": [2, 4, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 17, 18, 18, 19, 20, 21, 22],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "warlock": {
@@ -126,7 +126,7 @@
     "casterType": null,
     "cantripsKnown": [],
     "spellsPrepared": [],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [],
     "spellSlots": []
   },
   "wizard": {
@@ -135,7 +135,7 @@
     "casterType": "full",
     "cantripsKnown": [3, 3, 3, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
     "spellsPrepared": [4, 5, 6, 7, 9, 10, 11, 12, 14, 15, 16, 16, 17, 18, 19, 21, 22, 23, 24, 25],
-    "baseSpellsKnown": [],
+    "spellsAddedPerLevel": [6, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
     "spellSlots": []
   }
 }
