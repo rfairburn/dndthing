@@ -32,7 +32,7 @@ if (schemaArgIndex !== -1 && args[schemaArgIndex + 1]) {
   };
   
   if (!typeToSchema[dataType]) {
-    console.error(`❌ Unknown type: ${dataType}. Valid types: spells, subclasses, feats, backgrounds`);
+    console.error(`❌ Unknown type: ${dataType}. Valid types: spells, subclasses, feats, backgrounds, species, classes, spell-progression`);
     process.exit(1);
   }
   
