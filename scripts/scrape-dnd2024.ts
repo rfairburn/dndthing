@@ -1,52 +1,60 @@
-import puppeteer from 'puppeteer';
-import axios from 'axios';
-import fs from 'node:fs';
-import path from 'node:path';
-import yargs from 'yargs';
-import { hideBin } from 'yargs/helpers';
+import puppeteer from "puppeteer";
+import axios from "axios";
+import fs from "node:fs";
+import path from "node:path";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
 
 const config = yargs(hideBin(process.argv))
-  .option('type', {
-    alias: ['types', 't'],
-    type: 'string',
+  .option("type", {
+    alias: ["types", "t"],
+    type: "string",
     default: null,
-    description: 'Type of content to scrape (comma-separated, e.g., spells,subclasses)'
+    description:
+      "Type of content to scrape (comma-separated, e.g., spells,subclasses)",
   })
-  .option('max-items', {
-    alias: 'm',
-    type: 'number',
+  .option("max-items", {
+    alias: "m",
+    type: "number",
     default: null,
-    description: 'Limit scrape to first N items (for testing)'
+    description: "Limit scrape to first N items (for testing)",
   })
-  .option('items', {
-    alias: 'i',
-    type: 'string',
-    default: '',
-    description: 'Specific item names to scrape (comma-separated)'
+  .option("items", {
+    alias: "i",
+    type: "string",
+    default: "",
+    description: "Specific item names to scrape (comma-separated)",
   })
-  .option('continue-on-error', {
-    alias: 'c',
-    type: 'boolean',
+  .option("continue-on-error", {
+    alias: "c",
+    type: "boolean",
     default: false,
-    description: 'Continue scraping after errors instead of stopping'
+    description: "Continue scraping after errors instead of stopping",
   })
-  .option('delay', {
-    alias: 'd',
-    type: 'number',
+  .option("delay", {
+    alias: "d",
+    type: "number",
     default: 200,
-    description: 'Delay between requests in milliseconds'
+    description: "Delay between requests in milliseconds",
   })
-  .option('retries', {
-    alias: 'r',
-    type: 'number',
+  .option("retries", {
+    alias: "r",
+    type: "number",
     default: 3,
-    description: 'Max retry attempts per item'
+    description: "Max retry attempts per item",
   })
   .help()
-  .alias('help', 'h')
+  .alias("help", "h")
   .parseSync();
 
-type ScrapeType = 'spells' | 'subclasses' | 'feats' | 'backgrounds' | 'species' | 'classes' | 'spell-progression';
+type ScrapeType =
+  | "spells"
+  | "subclasses"
+  | "feats"
+  | "backgrounds"
+  | "species"
+  | "classes"
+  | "spell-progression";
 
 interface ScrapedItem {
   name: string;
@@ -54,81 +62,106 @@ interface ScrapedItem {
 }
 
 async function getAllSpellNames(browser: puppeteer.Browser): Promise<string[]> {
-  console.log(`\n📋 Fetching all spells from http://dnd2024.wikidot.com/spell:all...`);
-  
+  console.log(
+    `\n📋 Fetching all spells from http://dnd2024.wikidot.com/spell:all...`,
+  );
+
   const page = await browser.newPage();
-  
+
   let html: string;
   try {
-    const response = await axios.get('http://dnd2024.wikidot.com/spell:all', { timeout: 10000 });
+    const response = await axios.get("http://dnd2024.wikidot.com/spell:all", {
+      timeout: 10000,
+    });
     html = response.data;
   } catch (error) {
     console.error(`❌ Failed to fetch spell index page`);
     process.exit(1);
   }
-  
+
   await page.setContent(html);
-  
+
   const spellLinks = await page.evaluate(() => {
     const links: string[] = [];
-    
+
     const allLinks = document.querySelectorAll('a[href^="/spell:"]');
-    
-    allLinks.forEach(el => {
-      const href = el.getAttribute('href');
-      if (href && !href.includes('-school')) {
+
+    allLinks.forEach((el) => {
+      const href = el.getAttribute("href");
+      if (href && !href.includes("-school")) {
         const match = href.match(/\/spell:([a-zA-Z0-9\-]+)/);
         if (match) {
           links.push(match[1]);
         }
       }
     });
-    
+
     return [...new Set(links)];
   });
-  
+
   console.log(`  ✓ Found ${spellLinks.length} total spells`);
   return spellLinks;
 }
 
-async function getAllSubclassNames(browser: puppeteer.Browser): Promise<string[]> {
+async function getAllSubclassNames(
+  browser: puppeteer.Browser,
+): Promise<string[]> {
   console.log(`\n📋 Fetching all subclasses...`);
-  
+
   const classPages = [
-    'artificer', 'barbarian', 'bard', 'cleric', 'druid', 
-    'fighter', 'monk', 'paladin', 'ranger', 'rogue', 
-    'sorcerer', 'warlock', 'wizard'
+    "artificer",
+    "barbarian",
+    "bard",
+    "cleric",
+    "druid",
+    "fighter",
+    "monk",
+    "paladin",
+    "ranger",
+    "rogue",
+    "sorcerer",
+    "warlock",
+    "wizard",
   ];
-  
+
   const allSubclasses: string[] = [];
-  
+
   for (const className of classPages) {
     try {
       const page = await browser.newPage();
-      
+
       let html: string;
       try {
-        const response = await axios.get(`http://dnd2024.wikidot.com/${className}:main`, { timeout: 10000 });
+        const response = await axios.get(
+          `http://dnd2024.wikidot.com/${className}:main`,
+          { timeout: 10000 },
+        );
         html = response.data;
       } catch (error) {
         console.warn(`  ⚠️  Failed to fetch ${className} page`);
         continue;
       }
-      
+
       await page.setContent(html);
-      
+
       const subclasses = await page.evaluate(() => {
         const links: string[] = [];
-        
+
         // Look for subclass tables with class "wiki-content-table"
-        const tables = document.querySelectorAll('.list-pages-box table.wiki-content-table');
-        
-        tables.forEach(table => {
-          const rows = table.querySelectorAll('tr td a[href]');
-          
-          rows.forEach(row => {
-            const href = row.getAttribute('href');
-            if (href && !href.includes(':main') && !href.includes(':spell-list')) {
+        const tables = document.querySelectorAll(
+          ".list-pages-box table.wiki-content-table",
+        );
+
+        tables.forEach((table) => {
+          const rows = table.querySelectorAll("tr td a[href]");
+
+          rows.forEach((row) => {
+            const href = row.getAttribute("href");
+            if (
+              href &&
+              !href.includes(":main") &&
+              !href.includes(":spell-list")
+            ) {
               // Match pattern like /artificer:alchemist or /wizard:bladesinger
               const match = href.match(/\/[a-z]+:([a-zA-Z0-9\-]+)/);
               if (match) {
@@ -137,133 +170,151 @@ async function getAllSubclassNames(browser: puppeteer.Browser): Promise<string[]
             }
           });
         });
-        
+
         return [...new Set(links)];
       });
-      
+
       allSubclasses.push(...subclasses);
-      
     } catch (error: any) {
-      console.warn(`  ⚠️  Error fetching subclasses for ${className}: ${error.message}`);
+      console.warn(
+        `  ⚠️  Error fetching subclasses for ${className}: ${error.message}`,
+      );
     }
   }
-  
+
   const uniqueSubclasses = [...new Set(allSubclasses)];
   console.log(`  ✓ Found ${uniqueSubclasses.length} total subclasses`);
   return uniqueSubclasses;
 }
 
 async function getAllFeatNames(browser: puppeteer.Browser): Promise<string[]> {
-  console.log(`\n📋 Fetching all feats from http://dnd2024.wikidot.com/feat:all...`);
-  
+  console.log(
+    `\n📋 Fetching all feats from http://dnd2024.wikidot.com/feat:all...`,
+  );
+
   const page = await browser.newPage();
-  
+
   let html: string;
   try {
-    const response = await axios.get('http://dnd2024.wikidot.com/feat:all', { timeout: 10000 });
+    const response = await axios.get("http://dnd2024.wikidot.com/feat:all", {
+      timeout: 10000,
+    });
     html = response.data;
   } catch (error) {
     console.error(`❌ Failed to fetch feat index page`);
     process.exit(1);
   }
-  
+
   await page.setContent(html);
-  
+
   const featLinks = await page.evaluate(() => {
     const links: string[] = [];
-    
+
     const allLinks = document.querySelectorAll('a[href^="/feat:"]');
-    
-    allLinks.forEach(el => {
-      const href = el.getAttribute('href');
-      if (href && !href.includes('#toc')) {
+
+    allLinks.forEach((el) => {
+      const href = el.getAttribute("href");
+      if (href && !href.includes("#toc")) {
         const match = href.match(/\/feat:([a-zA-Z0-9\-]+)/);
         if (match) {
           links.push(match[1]);
         }
       }
     });
-    
+
     return [...new Set(links)];
   });
-  
+
   console.log(`  ✓ Found ${featLinks.length} total feats`);
   return featLinks;
 }
 
-async function getAllBackgroundNames(browser: puppeteer.Browser): Promise<string[]> {
-  console.log(`\n📋 Fetching all backgrounds from http://dnd2024.wikidot.com/background:all...`);
-  
+async function getAllBackgroundNames(
+  browser: puppeteer.Browser,
+): Promise<string[]> {
+  console.log(
+    `\n📋 Fetching all backgrounds from http://dnd2024.wikidot.com/background:all...`,
+  );
+
   const page = await browser.newPage();
-  
+
   let html: string;
   try {
-    const response = await axios.get('http://dnd2024.wikidot.com/background:all', { timeout: 10000 });
+    const response = await axios.get(
+      "http://dnd2024.wikidot.com/background:all",
+      { timeout: 10000 },
+    );
     html = response.data;
   } catch (error) {
     console.error(`❌ Failed to fetch background index page`);
     process.exit(1);
   }
-  
+
   await page.setContent(html);
-  
+
   const backgroundLinks = await page.evaluate(() => {
     const links: string[] = [];
-    
+
     const allLinks = document.querySelectorAll('a[href^="/background:"]');
-    
-    allLinks.forEach(el => {
-      const href = el.getAttribute('href');
-      if (href && !href.includes('#toc')) {
+
+    allLinks.forEach((el) => {
+      const href = el.getAttribute("href");
+      if (href && !href.includes("#toc")) {
         const match = href.match(/\/background:([a-zA-Z0-9\-]+)/);
         if (match) {
           links.push(match[1]);
         }
       }
     });
-    
+
     return [...new Set(links)];
   });
-  
+
   console.log(`  ✓ Found ${backgroundLinks.length} total backgrounds`);
   return backgroundLinks;
 }
 
-async function getAllSpeciesNames(browser: puppeteer.Browser): Promise<string[]> {
-  console.log(`\n📋 Fetching all species from http://dnd2024.wikidot.com/species:all...`);
-  
+async function getAllSpeciesNames(
+  browser: puppeteer.Browser,
+): Promise<string[]> {
+  console.log(
+    `\n📋 Fetching all species from http://dnd2024.wikidot.com/species:all...`,
+  );
+
   const page = await browser.newPage();
-  
+
   let html: string;
   try {
-    const response = await axios.get('http://dnd2024.wikidot.com/species:all', { timeout: 10000 });
+    const response = await axios.get("http://dnd2024.wikidot.com/species:all", {
+      timeout: 10000,
+    });
     html = response.data;
   } catch (error) {
     console.error(`❌ Failed to fetch species index page`);
     process.exit(1);
   }
-  
+
   await page.setContent(html);
-  
+
   const speciesLinks = await page.evaluate(() => {
     const links: string[] = [];
-    
+
     // Look for all links starting with /species: (excluding :all)
     const allLinks = document.querySelectorAll('a[href^="/species:"]');
-    
-    allLinks.forEach(el => {
-      const href = el.getAttribute('href');
-      if (href && !href.includes(':all') && !href.includes('#toc')) {
+
+    allLinks.forEach((el) => {
+      const href = el.getAttribute("href");
+      if (href && !href.includes(":all") && !href.includes("#toc")) {
         const match = href.match(/\/species:([a-zA-Z0-9\-]+)/);
         if (match) {
           links.push(match[1]);
         }
       }
     });
-    
+
     return [...new Set(links)];
   });
-  
+
   console.log(`  ✓ Found ${speciesLinks.length} total species`);
   return speciesLinks;
 }
@@ -277,86 +328,32 @@ async function fetchPageHtml(url: string): Promise<string> {
   }
 }
 
-async function scrapeSpellPage(browser: puppeteer.Browser, spellName: string): Promise<any> {
+async function scrapeSpellPage(
+  browser: puppeteer.Browser,
+  spellName: string,
+): Promise<any> {
   const url = `http://dnd2024.wikidot.com/spell:${spellName}`;
   const html = await fetchPageHtml(url);
-  
+
   const page = await browser.newPage();
-  
+
   try {
-    await page.evaluate(() => {
-      (window as any).__name = (fn: Function) => fn;
-    });
-    
     await page.setJavaScriptEnabled(false);
-    
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
-    
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
     const spellData = await page.evaluate((spellParam: string) => {
-      function parseLevelSchoolClasses(text: string): { level: number; school: string; classes: string[] } {
-        let level = 0;
-        let school = '';
-        let classes: string[] = [];
-        
-        const cantripMatch = text.match(/^([a-z]+)\s+Cantrip\s+\(([^)]+)\)/i);
-        if (cantripMatch) {
-          school = cantripMatch[1].toLowerCase();
-          classes = cantripMatch[2].split(',').map(c => c.trim().toLowerCase());
-          return { level, school, classes };
-        }
-        
-        const levelMatch = text.match(/Level\s+(\d+)/);
-        if (levelMatch) {
-          level = parseInt(levelMatch[1], 10);
-        }
-        
-        const schoolMatch = text.match(/Level\s+\d+\s+([a-z]+)/i);
-        if (schoolMatch) {
-          school = schoolMatch[1].toLowerCase();
-        }
-        
-        const classesMatch = text.match(/\(([^)]+)\)/);
-        if (classesMatch) {
-          const classText = classesMatch[1];
-          classes = classText.split(',').map(c => c.trim().toLowerCase());
-        }
-        
-        return { level, school, classes };
-      }
-      
-      function parseStatsLine(text: string): { castingTime: string; range: string; components: any; duration: string } {
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-        
-        let castingTime = '';
-        let range = '';
-        let verbal = false, somatic = false, material = false;
-        let duration = '';
-        
-        for (const line of lines) {
-          if (line.startsWith('Casting Time:')) {
-            castingTime = line.replace('Casting Time:', '').trim();
-          } else if (line.startsWith('Range:')) {
-            range = line.replace('Range:', '').trim();
-          } else if (line.startsWith('Components:') || line.startsWith('Component:')) {
-            const comps = line.replace(/^(Components?:)/, '').trim();
-            verbal = /V|verbal/i.test(comps);
-            somatic = /S|somatic/i.test(comps);
-            material = /M|material/i.test(comps);
-          } else if (line.startsWith('Duration:')) {
-            duration = line.replace('Duration:', '').trim();
-          }
-        }
-        
-        return { castingTime, range, components: { verbal, somatic, material }, duration };
-      }
-      
-      const titleSpan = document.querySelector('.page-title.page-header span');
+      const titleSpan = document.querySelector(".page-title.page-header span");
       const friendlyName = titleSpan?.textContent?.trim() || spellParam;
-      
-      const paragraphTexts = Array.from(document.querySelectorAll('.main-content p')).map(p => p.textContent?.trim() || '');
-      const listItems = Array.from(document.querySelectorAll('.main-content ul li')).map(li => {
-        const text = li.textContent?.trim() || '';
-        return text.replace(/^<strong>([^.]+)\.<\/strong>\s*/, '$1.');
+
+      const paragraphTexts = Array.from(
+        document.querySelectorAll(".main-content p"),
+      ).map((p) => p.textContent?.trim() || "");
+      const listItems = Array.from(
+        document.querySelectorAll(".main-content ul li"),
+      ).map((li) => {
+        const text = li.textContent?.trim() || "";
+        return text.replace(/^<strong>([^.]+)\.<\/strong>\s*/, "$1.");
       });
 
       const allTextElements = [...paragraphTexts, ...listItems];
@@ -365,18 +362,21 @@ async function scrapeSpellPage(browser: puppeteer.Browser, spellName: string): P
         return null;
       }
 
-      let levelSchoolLine = '';
-      let statsLine = '';
+      let levelSchoolLine = "";
+      let statsLine = "";
       let descriptionStartIndex = 2;
 
-      if (paragraphTexts[0].includes('Source:') && paragraphTexts[0].match(/Level\s+\d+/)) {
+      if (
+        paragraphTexts[0].includes("Source:") &&
+        paragraphTexts[0].match(/Level\s+\d+/)
+      ) {
         let combinedText = paragraphTexts[0];
-        
+
         const sourceMatch = combinedText.match(/^Source:[^\n]+/);
         if (sourceMatch) {
-          combinedText = combinedText.replace(sourceMatch[0], '').trim();
+          combinedText = combinedText.replace(sourceMatch[0], "").trim();
         }
-        
+
         levelSchoolLine = combinedText;
         statsLine = combinedText;
         descriptionStartIndex = 1;
@@ -389,10 +389,67 @@ async function scrapeSpellPage(browser: puppeteer.Browser, spellName: string): P
         return null;
       }
 
-      const { level, school, classes } = parseLevelSchoolClasses(levelSchoolLine);
+      let level = 0;
+      let school = "";
+      let classes: string[] = [];
 
-      const fullStatsText = paragraphTexts[descriptionStartIndex - 1] + '\n' + (statsLine || '');
-      const { castingTime, range, components, duration } = parseStatsLine(fullStatsText);
+      const cantripMatch = levelSchoolLine.match(
+        /^([a-z]+)\s+Cantrip\s+\(([^)]+)\)/i,
+      );
+      if (cantripMatch) {
+        school = cantripMatch[1].toLowerCase();
+        classes = cantripMatch[2].split(",").map((c) => c.trim().toLowerCase());
+      } else {
+        const levelMatch = levelSchoolLine.match(/Level\s+(\d+)/);
+        if (levelMatch) {
+          level = parseInt(levelMatch[1], 10);
+        }
+
+        const schoolMatch = levelSchoolLine.match(/Level\s+\d+\s+([a-z]+)/i);
+        if (schoolMatch) {
+          school = schoolMatch[1].toLowerCase();
+        }
+
+        const classesMatch = levelSchoolLine.match(/\(([^)]+)\)/);
+        if (classesMatch) {
+          const classText = classesMatch[1];
+          classes = classText.split(",").map((c) => c.trim().toLowerCase());
+        }
+      }
+
+      const fullStatsText =
+        paragraphTexts[descriptionStartIndex - 1] + "\n" + (statsLine || "");
+      const lines = fullStatsText
+        .split("\n")
+        .map((l) => l.trim())
+        .filter((l) => l);
+
+      let castingTime = "";
+      let range = "";
+      let verbal = false,
+        somatic = false,
+        material = false;
+      let duration = "";
+
+      for (const line of lines) {
+        if (line.startsWith("Casting Time:")) {
+          castingTime = line.replace("Casting Time:", "").trim();
+        } else if (line.startsWith("Range:")) {
+          range = line.replace("Range:", "").trim();
+        } else if (
+          line.startsWith("Components:") ||
+          line.startsWith("Component:")
+        ) {
+          const comps = line.replace(/^(Components?:)/, "").trim();
+          verbal = /V|verbal/i.test(comps);
+          somatic = /S|somatic/i.test(comps);
+          material = /M|material/i.test(comps);
+        } else if (line.startsWith("Duration:")) {
+          duration = line.replace("Duration:", "").trim();
+        }
+      }
+
+      const components = { verbal, somatic, material };
 
       let descStartIdx = descriptionStartIndex;
       for (let i = descriptionStartIndex; i < allTextElements.length; i++) {
@@ -404,14 +461,18 @@ async function scrapeSpellPage(browser: puppeteer.Browser, spellName: string): P
         }
       }
 
-      const atHigherLevelsElements = allTextElements.slice(descStartIdx).filter(p => p && !p.startsWith('Using a Higher-Level'));
-      let description = atHigherLevelsElements.join('\n\n');
+      const atHigherLevelsElements = allTextElements
+        .slice(descStartIdx)
+        .filter((p) => p && !p.startsWith("Using a Higher-Level"));
+      let description = atHigherLevelsElements.join("\n\n");
 
-      const higherLevelPara = allTextElements.find(p => p.startsWith('Using a Higher-Level'));
+      const higherLevelPara = allTextElements.find((p) =>
+        p.startsWith("Using a Higher-Level"),
+      );
       if (higherLevelPara) {
-        description += '\n\n' + higherLevelPara;
+        description += "\n\n" + higherLevelPara;
       }
-      
+
       return {
         name: friendlyName,
         level,
@@ -422,26 +483,44 @@ async function scrapeSpellPage(browser: puppeteer.Browser, spellName: string): P
         duration: duration || undefined,
         description: description || undefined,
         classes,
-        atHigherLevels: higherLevelPara ? higherLevelPara.replace('Using a Higher-Level Spell Slot.', '').trim() : undefined
+        atHigherLevels: higherLevelPara
+          ? higherLevelPara
+              .replace("Using a Higher-Level Spell Slot.", "")
+              .trim()
+          : undefined,
       };
     }, spellName);
-    
+
     return spellData;
-    
   } finally {
     await page.close();
   }
 }
 
-async function scrapeSubclassPage(browser: puppeteer.Browser, subclassName: string): Promise<any> {
+async function scrapeSubclassPage(
+  browser: puppeteer.Browser,
+  subclassName: string,
+): Promise<any> {
   // Subclasses use pattern /classname:name (e.g., /artificer:alchemist)
   // Try each class prefix until we find a valid URL
-  const classPrefixes = ['artificer', 'barbarian', 'bard', 'cleric', 'druid', 
-    'fighter', 'monk', 'paladin', 'ranger', 'rogue', 
-    'sorcerer', 'warlock', 'wizard'];
-  
+  const classPrefixes = [
+    "artificer",
+    "barbarian",
+    "bard",
+    "cleric",
+    "druid",
+    "fighter",
+    "monk",
+    "paladin",
+    "ranger",
+    "rogue",
+    "sorcerer",
+    "warlock",
+    "wizard",
+  ];
+
   let html: string | null = null;
-  
+
   for (const prefix of classPrefixes) {
     const testUrl = `http://dnd2024.wikidot.com/${prefix}:${subclassName}`;
     try {
@@ -454,180 +533,200 @@ async function scrapeSubclassPage(browser: puppeteer.Browser, subclassName: stri
       continue;
     }
   }
-  
+
   if (!html) {
     throw new Error(`Could not find URL for subclass: ${subclassName}`);
   }
-  
+
   const page = await browser.newPage();
-  
+
   try {
-    const page = await browser.newPage();
-    
-    await page.evaluate(() => {
-      (window as any).__name = (fn: Function) => fn;
-    });
-    
     await page.setJavaScriptEnabled(false);
-    
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
-    
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
     const subclassData = await page.evaluate((subclassNameParam: string) => {
-      const titleSpan = document.querySelector('.page-title.page-header span');
+      const titleSpan = document.querySelector(".page-title.page-header span");
       const friendlyName = titleSpan?.textContent?.trim() || subclassNameParam;
-      
-      const paragraphTexts = Array.from(document.querySelectorAll('.main-content p')).map(p => p.textContent?.trim() || '');
-      
+
+      const paragraphTexts = Array.from(
+        document.querySelectorAll(".main-content p"),
+      ).map((p) => p.textContent?.trim() || "");
+
       if (paragraphTexts.length < 2) {
         return null;
       }
-      
+
       let descriptionStartIndex = 0;
       for (let i = 0; i < paragraphTexts.length; i++) {
         const para = paragraphTexts[i];
-        if (!para.startsWith('Source:') && !para.includes('[Home]') && !para.includes('»')) {
+        if (
+          !para.startsWith("Source:") &&
+          !para.includes("[Home]") &&
+          !para.includes("»")
+        ) {
           descriptionStartIndex = i;
           break;
         }
       }
-      
-      let description = '';
+
+      let description = "";
       for (let i = descriptionStartIndex; i < paragraphTexts.length; i++) {
         const para = paragraphTexts[i];
-        if (para && !para.startsWith('Source:') && !para.includes('[Home]') && !para.includes('»')) {
-          description += para + '\n\n';
+        if (
+          para &&
+          !para.startsWith("Source:") &&
+          !para.includes("[Home]") &&
+          !para.includes("»")
+        ) {
+          description += para + "\n\n";
         }
       }
-      
+
       description = description.trim();
-      
-      const sourceMatch = paragraphTexts.find(p => p.startsWith('Source:'));
-      const source = sourceMatch ? sourceMatch.replace('Source:', '').trim() : undefined;
-      
+
+      const sourceMatch = paragraphTexts.find((p) => p.startsWith("Source:"));
+      const source = sourceMatch
+        ? sourceMatch.replace("Source:", "").trim()
+        : undefined;
+
       return {
         name: friendlyName,
         description: description || undefined,
-        source: source || undefined
+        source: source || undefined,
       };
     }, subclassName);
-    
+
     return subclassData;
-    
   } finally {
     await page.close();
   }
 }
 
-async function scrapeFeatPage(browser: puppeteer.Browser, featName: string): Promise<any> {
+async function scrapeFeatPage(
+  browser: puppeteer.Browser,
+  featName: string,
+): Promise<any> {
   const url = `http://dnd2024.wikidot.com/feat:${featName}`;
   const html = await fetchPageHtml(url);
-  
+
   const page = await browser.newPage();
-  
+
   try {
-    await page.evaluate(() => {
-      (window as any).__name = (fn: Function) => fn;
-    });
-    
     await page.setJavaScriptEnabled(false);
-    
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
-    
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
     const featData = await page.evaluate((featParam: string) => {
-      const titleSpan = document.querySelector('.page-title.page-header span');
+      const titleSpan = document.querySelector(".page-title.page-header span");
       const friendlyName = titleSpan?.textContent?.trim() || featParam;
-      
-      const paragraphTexts = Array.from(document.querySelectorAll('.main-content p')).map(p => p.textContent?.trim() || '');
-      const listItems = Array.from(document.querySelectorAll('.main-content ul li')).map(li => {
-        const text = li.textContent?.trim() || '';
-        return text.replace(/^<strong>([^.]+)\.<\/strong>\s*/, '$1.');
+
+      const paragraphTexts = Array.from(
+        document.querySelectorAll(".main-content p"),
+      ).map((p) => p.textContent?.trim() || "");
+      const listItems = Array.from(
+        document.querySelectorAll(".main-content ul li"),
+      ).map((li) => {
+        const text = li.textContent?.trim() || "";
+        return text.replace(/^<strong>([^.]+)\.<\/strong>\s*/, "$1.");
       });
 
       const allTextElements = [...paragraphTexts, ...listItems];
-      
+
       if (allTextElements.length < 2) {
         return null;
       }
-      
+
       let descriptionStartIndex = 0;
       for (let i = 0; i < allTextElements.length; i++) {
         const elem = allTextElements[i];
-        if (!elem.startsWith('Source:') && !elem.includes('[Home]') && !elem.includes('»')) {
+        if (
+          !elem.startsWith("Source:") &&
+          !elem.includes("[Home]") &&
+          !elem.includes("»")
+        ) {
           descriptionStartIndex = i;
           break;
         }
       }
-      
-      let description = '';
+
+      let description = "";
       for (let i = descriptionStartIndex; i < allTextElements.length; i++) {
         const elem = allTextElements[i];
-        if (elem && !elem.startsWith('Source:') && !elem.includes('[Home]') && !elem.includes('»')) {
-          description += elem + '\n\n';
+        if (
+          elem &&
+          !elem.startsWith("Source:") &&
+          !elem.includes("[Home]") &&
+          !elem.includes("»")
+        ) {
+          description += elem + "\n\n";
         }
       }
-      
+
       description = description.trim();
-      
-      const sourceMatch = paragraphTexts.find(p => p.startsWith('Source:'));
-      const source = sourceMatch ? sourceMatch.replace('Source:', '').trim() : undefined;
-      
+
+      const sourceMatch = paragraphTexts.find((p) => p.startsWith("Source:"));
+      const source = sourceMatch
+        ? sourceMatch.replace("Source:", "").trim()
+        : undefined;
+
       return {
         name: friendlyName,
         description: description || undefined,
-        source: source || undefined
+        source: source || undefined,
       };
     }, featName);
-    
+
     return featData;
-    
   } finally {
     await page.close();
   }
 }
 
-async function scrapeBackgroundPage(browser: puppeteer.Browser, backgroundName: string): Promise<any> {
+async function scrapeBackgroundPage(
+  browser: puppeteer.Browser,
+  backgroundName: string,
+): Promise<any> {
   const url = `http://dnd2024.wikidot.com/background:${backgroundName}`;
   const html = await fetchPageHtml(url);
-  
+
   const page = await browser.newPage();
-  
+
   try {
-    await page.evaluate(() => {
-      (window as any).__name = (fn: Function) => fn;
-    });
-    
     await page.setJavaScriptEnabled(false);
-    
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
-    
- const backgroundData = await page.evaluate((backgroundParam: string) => {
-      const titleSpan = document.querySelector('.page-title.page-header span');
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
+    const backgroundData = await page.evaluate((backgroundParam: string) => {
+      const titleSpan = document.querySelector(".page-title.page-header span");
       const friendlyName = titleSpan?.textContent?.trim() || backgroundParam;
-      
+
       // Get all paragraphs, splitting by <br> tags to separate fields on same line
-      const rawParagraphs = Array.from(document.querySelectorAll('.main-content p'));
+      const rawParagraphs = Array.from(
+        document.querySelectorAll(".main-content p"),
+      );
       const textLines: string[] = [];
-      
+
       for (const para of rawParagraphs) {
         // Split paragraph by <br> tags into separate lines
         const htmlContent = para.innerHTML;
         const lines = htmlContent.split(/<br\s*\/?>/i);
-        
+
         for (const line of lines) {
           // Convert HTML entities and extract text content
-          const tempDiv = document.createElement('div');
+          const tempDiv = document.createElement("div");
           tempDiv.innerHTML = line;
-          const text = tempDiv.textContent?.trim() || '';
+          const text = tempDiv.textContent?.trim() || "";
           if (text) {
             textLines.push(text);
           }
         }
       }
-      
+
       if (textLines.length === 0) {
         return null;
       }
-      
+
       let source: string | undefined;
       let abilityScores: string[] = [];
       let feat: string | undefined;
@@ -635,42 +734,56 @@ async function scrapeBackgroundPage(browser: puppeteer.Browser, backgroundName: 
       const toolProficiencies: string[] = [];
       let equipmentText: string | undefined;
       const descriptionParts: string[] = [];
-      
+
       for (const text of textLines) {
         // Skip source line
-        if (text.startsWith('Source:')) {
-          source = text.replace('Source:', '').trim();
+        if (text.startsWith("Source:")) {
+          source = text.replace("Source:", "").trim();
           continue;
         }
-        
+
         // Skip navigation links
-        if (text.includes('[Home]') || text.includes('»')) {
+        if (text.includes("[Home]") || text.includes("»")) {
           continue;
         }
-        
+
         // Split on first colon to get key/value
-        const colonIndex = text.indexOf(':');
+        const colonIndex = text.indexOf(":");
         if (colonIndex !== -1) {
           const label = text.substring(0, colonIndex).trim().toLowerCase();
-          
+
           // Only treat as field if label matches known field names
-          const knownLabels = ['ability scores', 'feat', 'skill proficiencies', 'tool proficiency', 
-                               'tool proficiencies', 'equipment'];
-          
+          const knownLabels = [
+            "ability scores",
+            "feat",
+            "skill proficiencies",
+            "tool proficiency",
+            "tool proficiencies",
+            "equipment",
+          ];
+
           if (knownLabels.includes(label)) {
             const value = text.substring(colonIndex + 1).trim();
-            
-            if (label === 'ability scores') {
-              abilityScores = value.split(/,\s*/).filter(s => s.trim());
-            } else if (label === 'feat') {
+
+            if (label === "ability scores") {
+              abilityScores = value.split(/,\s*/).filter((s) => s.trim());
+            } else if (label === "feat") {
               feat = value;
-            } else if (label === 'skill proficiencies') {
-              skillProficiencies.push(...value.split(/ and |,/).map(s => s.trim()).filter(Boolean));
-            } else if (label === 'tool proficiency' || label === 'tool proficiencies') {
-              if (value !== 'Choose one kind of') {
+            } else if (label === "skill proficiencies") {
+              skillProficiencies.push(
+                ...value
+                  .split(/ and |,/)
+                  .map((s) => s.trim())
+                  .filter(Boolean),
+              );
+            } else if (
+              label === "tool proficiency" ||
+              label === "tool proficiencies"
+            ) {
+              if (value !== "Choose one kind of") {
                 toolProficiencies.push(value);
               }
-            } else if (label === 'equipment') {
+            } else if (label === "equipment") {
               equipmentText = value;
             }
           } else {
@@ -682,105 +795,107 @@ async function scrapeBackgroundPage(browser: puppeteer.Browser, backgroundName: 
           descriptionParts.push(text);
         }
       }
-      
-      const description = descriptionParts.join('\n\n').trim();
-      
+
+      const description = descriptionParts.join("\n\n").trim();
+
       return {
         name: friendlyName,
         source: source || undefined,
         abilityScores: abilityScores.length > 0 ? abilityScores : undefined,
         feat: feat || undefined,
-        skillProficiencies: skillProficiencies.length > 0 ? skillProficiencies : undefined,
-        toolProficiency: toolProficiencies.length > 0 ? toolProficiencies : undefined,
+        skillProficiencies:
+          skillProficiencies.length > 0 ? skillProficiencies : undefined,
+        toolProficiency:
+          toolProficiencies.length > 0 ? toolProficiencies : undefined,
         equipment: equipmentText || undefined,
-        description: description || undefined
+        description: description || undefined,
       };
     }, backgroundName);
-    
+
     if (!backgroundData) {
-      throw new Error('Failed to extract background data from page');
+      throw new Error("Failed to extract background data from page");
     }
-    
+
     return backgroundData;
-    
   } finally {
     await page.close();
   }
 }
 
-async function scrapeSpeciesPage(browser: puppeteer.Browser, speciesName: string): Promise<any> {
+async function scrapeSpeciesPage(
+  browser: puppeteer.Browser,
+  speciesName: string,
+): Promise<any> {
   const url = `http://dnd2024.wikidot.com/species:${speciesName}`;
   const html = await fetchPageHtml(url);
-  
+
   const page = await browser.newPage();
-  
+
   try {
-    await page.evaluate(() => {
-      (window as any).__name = (fn: Function) => fn;
-    });
-    
     await page.setJavaScriptEnabled(false);
-    
-    await page.setContent(html, { waitUntil: 'domcontentloaded' });
-    
+
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+
     const speciesData = await page.evaluate((speciesParam: string) => {
-      const titleSpan = document.querySelector('.page-title.page-header span');
+      const titleSpan = document.querySelector(".page-title.page-header span");
       const friendlyName = titleSpan?.textContent?.trim() || speciesParam;
-      
+
       // Get all paragraphs from main content, splitting by <br> tags
-      const rawParagraphs = Array.from(document.querySelectorAll('.main-content p'));
+      const rawParagraphs = Array.from(
+        document.querySelectorAll(".main-content p"),
+      );
       const textLines: string[] = [];
-      
+
       for (const para of rawParagraphs) {
         const htmlContent = para.innerHTML;
         const lines = htmlContent.split(/<br\s*\/?>/i);
-        
+
         for (const line of lines) {
-          const tempDiv = document.createElement('div');
+          const tempDiv = document.createElement("div");
           tempDiv.innerHTML = line;
-          const text = tempDiv.textContent?.trim() || '';
+          const text = tempDiv.textContent?.trim() || "";
           if (text) {
             textLines.push(text);
           }
         }
       }
-      
+
       if (textLines.length === 0) {
         return null;
       }
-      
+
       let source: string | undefined;
       let creatureType: string | undefined;
       let size: string | undefined;
       let speed: number | undefined;
-      const traits: Array<{name: string, description: string}> = [];
+      const traits: Array<{ name: string; description: string }> = [];
       const descriptionParts: string[] = [];
-      
+
       for (const text of textLines) {
         // Skip source line
-        if (text.startsWith('Source:')) {
-          source = text.replace('Source:', '').trim();
+        if (text.startsWith("Source:")) {
+          source = text.replace("Source:", "").trim();
           continue;
         }
-        
+
         // Skip navigation links
-        if (text.includes('[Home]') || text.includes('»')) {
+        if (text.includes("[Home]") || text.includes("»")) {
           continue;
         }
-        
+
         // Parse species traits section - each field is on its own line
-        if (text.startsWith('Creature Type:')) {
-          creatureType = text.replace('Creature Type:', '').trim();
+        if (text.startsWith("Creature Type:")) {
+          creatureType = text.replace("Creature Type:", "").trim();
           continue;
         }
-        
-        if (text.startsWith('Size:')) {
-          size = text.replace('Size:', '').trim();
+
+        if (text.startsWith("Size:")) {
+          size = text.replace("Size:", "").trim();
           continue;
         }
-        
-        if (text.startsWith('Speed:')) {
-          const speedText = text.replace('Speed:', '').trim();
+
+        if (text.startsWith("Speed:")) {
+          const speedText = text.replace("Speed:", "").trim();
           // Extract number from "30 feet" format
           const match = speedText.match(/(\d+)/);
           if (match) {
@@ -788,57 +903,60 @@ async function scrapeSpeciesPage(browser: puppeteer.Browser, speciesName: string
           }
           continue;
         }
-        
+
         // Check for trait headers (bold text followed by description)
         // Traits typically start with a capitalized name and period, like "Darkvision." or "Dwarven Resilience."
         const traitMatch = text.match(/^([A-Z][^.]+)\.\s*(.+)$/);
-        if (traitMatch && !text.startsWith('As a ') && !text.includes('You can use this')) {
+        if (
+          traitMatch &&
+          !text.startsWith("As a ") &&
+          !text.includes("You can use this")
+        ) {
           traits.push({
             name: traitMatch[1].trim(),
-            description: traitMatch[2].trim()
+            description: traitMatch[2].trim(),
           });
         } else if (text) {
           // Otherwise it's part of the main description
           descriptionParts.push(text);
         }
       }
-      
-      const description = descriptionParts.join('\n\n').trim();
-      
+
+      const description = descriptionParts.join("\n\n").trim();
+
       const speciesData: any = {
         name: friendlyName,
         source: source || undefined,
         creatureType: creatureType || undefined,
         speed: speed || undefined,
         traits: traits.length > 0 ? traits : undefined,
-        description: description || undefined
+        description: description || undefined,
       };
-      
+
       // Add size fields if size was found
       if (size) {
         speciesData.sizeDescription = size;
-        
+
         // Extract available sizes from description in UI order: Small first, then Medium
         const sizes: string[] = [];
-        if (size.includes('Small')) {
-          sizes.push('Small');
+        if (size.includes("Small")) {
+          sizes.push("Small");
         }
-        if (size.includes('Medium')) {
-          sizes.push('Medium');
+        if (size.includes("Medium")) {
+          sizes.push("Medium");
         }
-        
+
         speciesData.sizes = sizes;
       }
-      
+
       return speciesData;
     }, speciesName);
-    
+
     if (!speciesData) {
-      throw new Error('Failed to extract species data from page');
+      throw new Error("Failed to extract species data from page");
     }
-    
+
     return speciesData;
-    
   } finally {
     await page.close();
   }
@@ -848,44 +966,47 @@ async function scrapeWithRetry<T>(
   browser: puppeteer.Browser,
   itemName: string,
   scraperFn: (browser: puppeteer.Browser, name: string) => Promise<T | null>,
-  maxRetries: number = 3
+  maxRetries: number = 3,
 ): Promise<T | null> {
   let lastError: Error | null = null;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const result = await scraperFn(browser, itemName);
-      
+
       if (result && result.name) {
         return result;
       }
-      
-      throw new Error('Invalid data structure');
-      
+
+      throw new Error("Invalid data structure");
     } catch (error: any) {
       lastError = error as Error;
-      console.error(`\n❌ ${itemName} - Attempt ${attempt}/${maxRetries} FAILED`);
+      console.error(
+        `\n❌ ${itemName} - Attempt ${attempt}/${maxRetries} FAILED`,
+      );
       console.error(`   Raw error: ${error.message}`);
-      console.error(`   Stack: ${error.stack || 'N/A'}`);
-      
+      console.error(`   Stack: ${error.stack || "N/A"}`);
+
       if (attempt < maxRetries) {
         const delay = 500 * Math.pow(2, attempt - 1);
-        console.log(`  ⏳ Retry ${attempt + 1}/${maxRetries} for ${itemName} in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        console.log(
+          `  ⏳ Retry ${attempt + 1}/${maxRetries} for ${itemName} in ${delay}ms...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
   }
-  
-  throw lastError || new Error('Unknown error during scraping');
+
+  throw lastError || new Error("Unknown error during scraping");
 }
 
 async function savePartialOutput(
-  data: any[], 
+  data: any[],
   timestamp: string,
-  type: ScrapeType
+  type: ScrapeType,
 ): Promise<void> {
   const outputPath = `src/data/${type}-${timestamp}.json.partial`;
-  
+
   try {
     fs.writeFileSync(outputPath, JSON.stringify(data, null, 2));
     console.log(`\n💾 Partial output saved to ${outputPath}`);
@@ -895,14 +1016,14 @@ async function savePartialOutput(
 }
 
 async function printSummary(
-  successCount: number, 
-  warningCount: number, 
+  successCount: number,
+  warningCount: number,
   errorCount: number,
-  totalItems: number
+  totalItems: number,
 ): Promise<void> {
-  console.log('\n\n' + '='.repeat(60));
-  console.log('📊 SCRAPING SUMMARY');
-  console.log('='.repeat(60));
+  console.log("\n\n" + "=".repeat(60));
+  console.log("📊 SCRAPING SUMMARY");
+  console.log("=".repeat(60));
   console.log(`✓ Successful: ${successCount}`);
   console.log(`⚠️  Warnings (partial data): ${warningCount}`);
   console.log(`❌ Errors: ${errorCount}`);
@@ -911,92 +1032,120 @@ async function printSummary(
 
 async function scrapeSpells(browser: puppeteer.Browser): Promise<void> {
   let spellNames: string[] = [];
-  
-  if (config['items'] && config['items'].trim()) {
-    spellNames = config['items'].split(',').map(s => s.trim()).filter(s => s);
-    console.log(`⚙️  Targeted scrape mode: ${spellNames.length} specific spells`);
+
+  if (config["items"] && config["items"].trim()) {
+    spellNames = config["items"]
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s);
+    console.log(
+      `⚙️  Targeted scrape mode: ${spellNames.length} specific spells`,
+    );
   } else {
     const allSpellNames = await getAllSpellNames(browser);
-    
+
     if (allSpellNames.length === 0) {
-      console.error('❌ No spells found in index, exiting...');
+      console.error("❌ No spells found in index, exiting...");
       process.exit(1);
     }
-    
+
     spellNames = allSpellNames;
-    
-    if (config['max-items']) {
-      console.log(`⚙️  Test mode: Limiting to first ${config['max-items']} spells`);
-      spellNames = spellNames.slice(0, config['max-items']);
+
+    if (config["max-items"]) {
+      console.log(
+        `⚙️  Test mode: Limiting to first ${config["max-items"]} spells`,
+      );
+      spellNames = spellNames.slice(0, config["max-items"]);
     }
   }
-  
-  if (config['continue-on-error']) {
+
+  if (config["continue-on-error"]) {
     console.log(`⚙️  Continue on error mode enabled`);
   }
   console.log(`⚙️  Delay between requests: ${config.delay}ms\n`);
-  
+
   const allSpells: any[] = [];
   let successCount = 0;
   let warningCount = 0;
   let errorCount = 0;
-  
+
   try {
     console.log(`📜 Scraping ${spellNames.length} individual spell pages...\n`);
-    
+
     for (const [index, spellName] of spellNames.entries()) {
-      if (config['max-items'] && index >= config['max-items']) break;
-      
-      const progress = Math.round((index + 1) / spellNames.length * 100);
-      process.stdout.write(`\r[${'='.repeat(Math.floor(progress / 2))}${' '.repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${spellNames.length} (${progress}%) - ${spellName}`);
-      
+      if (config["max-items"] && index >= config["max-items"]) break;
+
+      const progress = Math.round(((index + 1) / spellNames.length) * 100);
+      process.stdout.write(
+        `\r[${"=".repeat(Math.floor(progress / 2))}${" ".repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${spellNames.length} (${progress}%) - ${spellName}`,
+      );
+
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, config.delay));
+        await new Promise((resolve) => setTimeout(resolve, config.delay));
       }
-      
+
       try {
-        const spellData = await scrapeWithRetry(browser, spellName, scrapeSpellPage, config.retries);
-        
+        const spellData = await scrapeWithRetry(
+          browser,
+          spellName,
+          scrapeSpellPage,
+          config.retries,
+        );
+
         if (!spellData || !spellData.name) {
           console.warn(`\n⚠️  ${spellName}: Failed to extract data`);
-          
+
           warningCount++;
-          
-          if (!config['continue-on-error']) {
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            await savePartialOutput(allSpells, timestamp, 'spells');
-            printSummary(successCount, warningCount, errorCount, spellNames.length);
-            console.log('\n⛔ Stopping due to error.');
+
+          if (!config["continue-on-error"]) {
+            const timestamp = new Date()
+              .toISOString()
+              .replace(/[:.]/g, "-")
+              .slice(0, -5);
+            await savePartialOutput(allSpells, timestamp, "spells");
+            printSummary(
+              successCount,
+              warningCount,
+              errorCount,
+              spellNames.length,
+            );
+            console.log("\n⛔ Stopping due to error.");
             process.exit(1);
           }
-          
+
           continue;
         }
-        
+
         allSpells.push(spellData);
         successCount++;
-        
       } catch (error: any) {
         console.warn(`\n❌ ${spellName}: ${error.message}`);
-        
+
         errorCount++;
-        
-        if (!config['continue-on-error']) {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-          await savePartialOutput(allSpells, timestamp, 'spells');
-          printSummary(successCount, warningCount, errorCount, spellNames.length);
-          console.log('\n⛔ Stopping due to error.');
+
+        if (!config["continue-on-error"]) {
+          const timestamp = new Date()
+            .toISOString()
+            .replace(/[:.]/g, "-")
+            .slice(0, -5);
+          await savePartialOutput(allSpells, timestamp, "spells");
+          printSummary(
+            successCount,
+            warningCount,
+            errorCount,
+            spellNames.length,
+          );
+          console.log("\n⛔ Stopping due to error.");
           process.exit(1);
         }
       }
     }
-    
-    const outputPath = 'src/data/spells.json';
+
+    const outputPath = "src/data/spells.json";
     fs.writeFileSync(outputPath, JSON.stringify(allSpells, null, 2));
     console.log(`\n\n✓ Final output saved to ${outputPath}`);
-    
+
     printSummary(successCount, warningCount, errorCount, spellNames.length);
-    
   } catch (error: any) {
     console.error(`\n❌ Fatal error: ${error.message}`);
     process.exit(1);
@@ -1005,92 +1154,122 @@ async function scrapeSpells(browser: puppeteer.Browser): Promise<void> {
 
 async function scrapeSubclasses(browser: puppeteer.Browser): Promise<void> {
   let subclassNames: string[] = [];
-  
-  if (config['items'] && config['items'].trim()) {
-    subclassNames = config['items'].split(',').map(s => s.trim()).filter(s => s);
-    console.log(`⚙️  Targeted scrape mode: ${subclassNames.length} specific subclasses`);
+
+  if (config["items"] && config["items"].trim()) {
+    subclassNames = config["items"]
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s);
+    console.log(
+      `⚙️  Targeted scrape mode: ${subclassNames.length} specific subclasses`,
+    );
   } else {
     const allSubclassNames = await getAllSubclassNames(browser);
-    
+
     if (allSubclassNames.length === 0) {
-      console.error('❌ No subclasses found, exiting...');
+      console.error("❌ No subclasses found, exiting...");
       process.exit(1);
     }
-    
+
     subclassNames = allSubclassNames;
-    
-    if (config['max-items']) {
-      console.log(`⚙️  Test mode: Limiting to first ${config['max-items']} subclasses`);
-      subclassNames = subclassNames.slice(0, config['max-items']);
+
+    if (config["max-items"]) {
+      console.log(
+        `⚙️  Test mode: Limiting to first ${config["max-items"]} subclasses`,
+      );
+      subclassNames = subclassNames.slice(0, config["max-items"]);
     }
   }
-  
-  if (config['continue-on-error']) {
+
+  if (config["continue-on-error"]) {
     console.log(`⚙️  Continue on error mode enabled`);
   }
   console.log(`⚙️  Delay between requests: ${config.delay}ms\n`);
-  
+
   const allSubclasses: any[] = [];
   let successCount = 0;
   let warningCount = 0;
   let errorCount = 0;
-  
+
   try {
-    console.log(`📜 Scraping ${subclassNames.length} individual subclass pages...\n`);
-    
+    console.log(
+      `📜 Scraping ${subclassNames.length} individual subclass pages...\n`,
+    );
+
     for (const [index, subclassName] of subclassNames.entries()) {
-      if (config['max-items'] && index >= config['max-items']) break;
-      
-      const progress = Math.round((index + 1) / subclassNames.length * 100);
-      process.stdout.write(`\r[${'='.repeat(Math.floor(progress / 2))}${' '.repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${subclassNames.length} (${progress}%) - ${subclassName}`);
-      
+      if (config["max-items"] && index >= config["max-items"]) break;
+
+      const progress = Math.round(((index + 1) / subclassNames.length) * 100);
+      process.stdout.write(
+        `\r[${"=".repeat(Math.floor(progress / 2))}${" ".repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${subclassNames.length} (${progress}%) - ${subclassName}`,
+      );
+
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, config.delay));
+        await new Promise((resolve) => setTimeout(resolve, config.delay));
       }
-      
+
       try {
-        const subclassData = await scrapeWithRetry(browser, subclassName, scrapeSubclassPage, config.retries);
-        
+        const subclassData = await scrapeWithRetry(
+          browser,
+          subclassName,
+          scrapeSubclassPage,
+          config.retries,
+        );
+
         if (!subclassData || !subclassData.name) {
           console.warn(`\n⚠️  ${subclassName}: Failed to extract data`);
-          
+
           warningCount++;
-          
-          if (!config['continue-on-error']) {
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            await savePartialOutput(allSubclasses, timestamp, 'subclasses');
-            printSummary(successCount, warningCount, errorCount, subclassNames.length);
-            console.log('\n⛔ Stopping due to error.');
+
+          if (!config["continue-on-error"]) {
+            const timestamp = new Date()
+              .toISOString()
+              .replace(/[:.]/g, "-")
+              .slice(0, -5);
+            await savePartialOutput(allSubclasses, timestamp, "subclasses");
+            printSummary(
+              successCount,
+              warningCount,
+              errorCount,
+              subclassNames.length,
+            );
+            console.log("\n⛔ Stopping due to error.");
             process.exit(1);
           }
-          
+
           continue;
         }
-        
+
         allSubclasses.push(subclassData);
         successCount++;
-        
       } catch (error: any) {
         console.warn(`\n❌ ${subclassName}: ${error.message}`);
-        
+
         errorCount++;
-        
-        if (!config['continue-on-error']) {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-          await savePartialOutput(allSubclasses, timestamp, 'subclasses');
-          printSummary(successCount, warningCount, errorCount, subclassNames.length);
-          console.log('\n⛔ Stopping due to error.');
+
+        if (!config["continue-on-error"]) {
+          const timestamp = new Date()
+            .toISOString()
+            .replace(/[:.]/g, "-")
+            .slice(0, -5);
+          await savePartialOutput(allSubclasses, timestamp, "subclasses");
+          printSummary(
+            successCount,
+            warningCount,
+            errorCount,
+            subclassNames.length,
+          );
+          console.log("\n⛔ Stopping due to error.");
           process.exit(1);
         }
       }
     }
-    
-    const outputPath = 'src/data/subclasses.json';
+
+    const outputPath = "src/data/subclasses.json";
     fs.writeFileSync(outputPath, JSON.stringify(allSubclasses, null, 2));
     console.log(`\n\n✓ Final output saved to ${outputPath}`);
-    
+
     printSummary(successCount, warningCount, errorCount, subclassNames.length);
-    
   } catch (error: any) {
     console.error(`\n❌ Fatal error: ${error.message}`);
     process.exit(1);
@@ -1099,92 +1278,118 @@ async function scrapeSubclasses(browser: puppeteer.Browser): Promise<void> {
 
 async function scrapeFeats(browser: puppeteer.Browser): Promise<void> {
   let featNames: string[] = [];
-  
-  if (config['items'] && config['items'].trim()) {
-    featNames = config['items'].split(',').map(s => s.trim()).filter(s => s);
+
+  if (config["items"] && config["items"].trim()) {
+    featNames = config["items"]
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s);
     console.log(`⚙️  Targeted scrape mode: ${featNames.length} specific feats`);
   } else {
     const allFeatNames = await getAllFeatNames(browser);
-    
+
     if (allFeatNames.length === 0) {
-      console.error('❌ No feats found in index, exiting...');
+      console.error("❌ No feats found in index, exiting...");
       process.exit(1);
     }
-    
+
     featNames = allFeatNames;
-    
-    if (config['max-items']) {
-      console.log(`⚙️  Test mode: Limiting to first ${config['max-items']} feats`);
-      featNames = featNames.slice(0, config['max-items']);
+
+    if (config["max-items"]) {
+      console.log(
+        `⚙️  Test mode: Limiting to first ${config["max-items"]} feats`,
+      );
+      featNames = featNames.slice(0, config["max-items"]);
     }
   }
-  
-  if (config['continue-on-error']) {
+
+  if (config["continue-on-error"]) {
     console.log(`⚙️  Continue on error mode enabled`);
   }
   console.log(`⚙️  Delay between requests: ${config.delay}ms\n`);
-  
+
   const allFeats: any[] = [];
   let successCount = 0;
   let warningCount = 0;
   let errorCount = 0;
-  
+
   try {
     console.log(`📜 Scraping ${featNames.length} individual feat pages...\n`);
-    
+
     for (const [index, featName] of featNames.entries()) {
-      if (config['max-items'] && index >= config['max-items']) break;
-      
-      const progress = Math.round((index + 1) / featNames.length * 100);
-      process.stdout.write(`\r[${'='.repeat(Math.floor(progress / 2))}${' '.repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${featNames.length} (${progress}%) - ${featName}`);
-      
+      if (config["max-items"] && index >= config["max-items"]) break;
+
+      const progress = Math.round(((index + 1) / featNames.length) * 100);
+      process.stdout.write(
+        `\r[${"=".repeat(Math.floor(progress / 2))}${" ".repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${featNames.length} (${progress}%) - ${featName}`,
+      );
+
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, config.delay));
+        await new Promise((resolve) => setTimeout(resolve, config.delay));
       }
-      
+
       try {
-        const featData = await scrapeWithRetry(browser, featName, scrapeFeatPage, config.retries);
-        
+        const featData = await scrapeWithRetry(
+          browser,
+          featName,
+          scrapeFeatPage,
+          config.retries,
+        );
+
         if (!featData || !featData.name) {
           console.warn(`\n⚠️  ${featName}: Failed to extract data`);
-          
+
           warningCount++;
-          
-          if (!config['continue-on-error']) {
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            await savePartialOutput(allFeats, timestamp, 'feats');
-            printSummary(successCount, warningCount, errorCount, featNames.length);
-            console.log('\n⛔ Stopping due to error.');
+
+          if (!config["continue-on-error"]) {
+            const timestamp = new Date()
+              .toISOString()
+              .replace(/[:.]/g, "-")
+              .slice(0, -5);
+            await savePartialOutput(allFeats, timestamp, "feats");
+            printSummary(
+              successCount,
+              warningCount,
+              errorCount,
+              featNames.length,
+            );
+            console.log("\n⛔ Stopping due to error.");
             process.exit(1);
           }
-          
+
           continue;
         }
-        
+
         allFeats.push(featData);
         successCount++;
-        
       } catch (error: any) {
         console.warn(`\n❌ ${featName}: ${error.message}`);
-        
+
         errorCount++;
-        
-        if (!config['continue-on-error']) {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-          await savePartialOutput(allFeats, timestamp, 'feats');
-          printSummary(successCount, warningCount, errorCount, featNames.length);
-          console.log('\n⛔ Stopping due to error.');
+
+        if (!config["continue-on-error"]) {
+          const timestamp = new Date()
+            .toISOString()
+            .replace(/[:.]/g, "-")
+            .slice(0, -5);
+          await savePartialOutput(allFeats, timestamp, "feats");
+          printSummary(
+            successCount,
+            warningCount,
+            errorCount,
+            featNames.length,
+          );
+          console.log("\n⛔ Stopping due to error.");
           process.exit(1);
         }
       }
     }
-    
-    const outputPath = 'src/data/feats.json';
+
+    const outputPath = "src/data/feats.json";
     fs.writeFileSync(outputPath, JSON.stringify(allFeats, null, 2));
     console.log(`\n\n✓ Final output saved to ${outputPath}`);
-    
+
     printSummary(successCount, warningCount, errorCount, featNames.length);
-    
   } catch (error: any) {
     console.error(`\n❌ Fatal error: ${error.message}`);
     process.exit(1);
@@ -1193,92 +1398,127 @@ async function scrapeFeats(browser: puppeteer.Browser): Promise<void> {
 
 async function scrapeBackgrounds(browser: puppeteer.Browser): Promise<void> {
   let backgroundNames: string[] = [];
-  
-  if (config['items'] && config['items'].trim()) {
-    backgroundNames = config['items'].split(',').map(s => s.trim()).filter(s => s);
-    console.log(`⚙️  Targeted scrape mode: ${backgroundNames.length} specific backgrounds`);
+
+  if (config["items"] && config["items"].trim()) {
+    backgroundNames = config["items"]
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s);
+    console.log(
+      `⚙️  Targeted scrape mode: ${backgroundNames.length} specific backgrounds`,
+    );
   } else {
     const allBackgroundNames = await getAllBackgroundNames(browser);
-    
+
     if (allBackgroundNames.length === 0) {
-      console.error('❌ No backgrounds found in index, exiting...');
+      console.error("❌ No backgrounds found in index, exiting...");
       process.exit(1);
     }
-    
+
     backgroundNames = allBackgroundNames;
-    
-    if (config['max-items']) {
-      console.log(`⚙️  Test mode: Limiting to first ${config['max-items']} backgrounds`);
-      backgroundNames = backgroundNames.slice(0, config['max-items']);
+
+    if (config["max-items"]) {
+      console.log(
+        `⚙️  Test mode: Limiting to first ${config["max-items"]} backgrounds`,
+      );
+      backgroundNames = backgroundNames.slice(0, config["max-items"]);
     }
   }
-  
-  if (config['continue-on-error']) {
+
+  if (config["continue-on-error"]) {
     console.log(`⚙️  Continue on error mode enabled`);
   }
   console.log(`⚙️  Delay between requests: ${config.delay}ms\n`);
-  
+
   const allBackgrounds: any[] = [];
   let successCount = 0;
   let warningCount = 0;
   let errorCount = 0;
-  
+
   try {
-    console.log(`📜 Scraping ${backgroundNames.length} individual background pages...\n`);
-    
+    console.log(
+      `📜 Scraping ${backgroundNames.length} individual background pages...\n`,
+    );
+
     for (const [index, backgroundName] of backgroundNames.entries()) {
-      if (config['max-items'] && index >= config['max-items']) break;
-      
-      const progress = Math.round((index + 1) / backgroundNames.length * 100);
-      process.stdout.write(`\r[${'='.repeat(Math.floor(progress / 2))}${' '.repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${backgroundNames.length} (${progress}%) - ${backgroundName}`);
-      
+      if (config["max-items"] && index >= config["max-items"]) break;
+
+      const progress = Math.round(((index + 1) / backgroundNames.length) * 100);
+      process.stdout.write(
+        `\r[${"=".repeat(Math.floor(progress / 2))}${" ".repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${backgroundNames.length} (${progress}%) - ${backgroundName}`,
+      );
+
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, config.delay));
+        await new Promise((resolve) => setTimeout(resolve, config.delay));
       }
-      
+
       try {
-        const backgroundData = await scrapeWithRetry(browser, backgroundName, scrapeBackgroundPage, config.retries);
-        
+        const backgroundData = await scrapeWithRetry(
+          browser,
+          backgroundName,
+          scrapeBackgroundPage,
+          config.retries,
+        );
+
         if (!backgroundData || !backgroundData.name) {
           console.warn(`\n⚠️  ${backgroundName}: Failed to extract data`);
-          
+
           warningCount++;
-          
-          if (!config['continue-on-error']) {
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            await savePartialOutput(allBackgrounds, timestamp, 'backgrounds');
-            printSummary(successCount, warningCount, errorCount, backgroundNames.length);
-            console.log('\n⛔ Stopping due to error.');
+
+          if (!config["continue-on-error"]) {
+            const timestamp = new Date()
+              .toISOString()
+              .replace(/[:.]/g, "-")
+              .slice(0, -5);
+            await savePartialOutput(allBackgrounds, timestamp, "backgrounds");
+            printSummary(
+              successCount,
+              warningCount,
+              errorCount,
+              backgroundNames.length,
+            );
+            console.log("\n⛔ Stopping due to error.");
             process.exit(1);
           }
-          
+
           continue;
         }
-        
+
         allBackgrounds.push(backgroundData);
         successCount++;
-        
       } catch (error: any) {
         console.warn(`\n❌ ${backgroundName}: ${error.message}`);
-        
+
         errorCount++;
-        
-        if (!config['continue-on-error']) {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-          await savePartialOutput(allBackgrounds, timestamp, 'backgrounds');
-          printSummary(successCount, warningCount, errorCount, backgroundNames.length);
-          console.log('\n⛔ Stopping due to error.');
+
+        if (!config["continue-on-error"]) {
+          const timestamp = new Date()
+            .toISOString()
+            .replace(/[:.]/g, "-")
+            .slice(0, -5);
+          await savePartialOutput(allBackgrounds, timestamp, "backgrounds");
+          printSummary(
+            successCount,
+            warningCount,
+            errorCount,
+            backgroundNames.length,
+          );
+          console.log("\n⛔ Stopping due to error.");
           process.exit(1);
         }
       }
     }
-    
-    const outputPath = 'src/data/backgrounds.json';
+
+    const outputPath = "src/data/backgrounds.json";
     fs.writeFileSync(outputPath, JSON.stringify(allBackgrounds, null, 2));
     console.log(`\n\n✓ Final output saved to ${outputPath}`);
-    
-    printSummary(successCount, warningCount, errorCount, backgroundNames.length);
-    
+
+    printSummary(
+      successCount,
+      warningCount,
+      errorCount,
+      backgroundNames.length,
+    );
   } catch (error: any) {
     console.error(`\n❌ Fatal error: ${error.message}`);
     process.exit(1);
@@ -1287,92 +1527,122 @@ async function scrapeBackgrounds(browser: puppeteer.Browser): Promise<void> {
 
 async function scrapeSpecies(browser: puppeteer.Browser): Promise<void> {
   let speciesNames: string[] = [];
-  
-  if (config['items'] && config['items'].trim()) {
-    speciesNames = config['items'].split(',').map(s => s.trim()).filter(s => s);
-    console.log(`⚙️  Targeted scrape mode: ${speciesNames.length} specific species`);
+
+  if (config["items"] && config["items"].trim()) {
+    speciesNames = config["items"]
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s);
+    console.log(
+      `⚙️  Targeted scrape mode: ${speciesNames.length} specific species`,
+    );
   } else {
     const allSpeciesNames = await getAllSpeciesNames(browser);
-    
+
     if (allSpeciesNames.length === 0) {
-      console.error('❌ No species found in index, exiting...');
+      console.error("❌ No species found in index, exiting...");
       process.exit(1);
     }
-    
+
     speciesNames = allSpeciesNames;
-    
-    if (config['max-items']) {
-      console.log(`⚙️  Test mode: Limiting to first ${config['max-items']} species`);
-      speciesNames = speciesNames.slice(0, config['max-items']);
+
+    if (config["max-items"]) {
+      console.log(
+        `⚙️  Test mode: Limiting to first ${config["max-items"]} species`,
+      );
+      speciesNames = speciesNames.slice(0, config["max-items"]);
     }
   }
-  
-  if (config['continue-on-error']) {
+
+  if (config["continue-on-error"]) {
     console.log(`⚙️  Continue on error mode enabled`);
   }
   console.log(`⚙️  Delay between requests: ${config.delay}ms\n`);
-  
+
   const allSpecies: any[] = [];
   let successCount = 0;
   let warningCount = 0;
   let errorCount = 0;
-  
+
   try {
-    console.log(`📜 Scraping ${speciesNames.length} individual species pages...\n`);
-    
+    console.log(
+      `📜 Scraping ${speciesNames.length} individual species pages...\n`,
+    );
+
     for (const [index, speciesName] of speciesNames.entries()) {
-      if (config['max-items'] && index >= config['max-items']) break;
-      
-      const progress = Math.round((index + 1) / speciesNames.length * 100);
-      process.stdout.write(`\r[${'='.repeat(Math.floor(progress / 2))}${' '.repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${speciesNames.length} (${progress}%) - ${speciesName}`);
-      
+      if (config["max-items"] && index >= config["max-items"]) break;
+
+      const progress = Math.round(((index + 1) / speciesNames.length) * 100);
+      process.stdout.write(
+        `\r[${"=".repeat(Math.floor(progress / 2))}${" ".repeat(50 - Math.floor(progress / 2))}] ${index + 1}/${speciesNames.length} (${progress}%) - ${speciesName}`,
+      );
+
       if (index > 0) {
-        await new Promise(resolve => setTimeout(resolve, config.delay));
+        await new Promise((resolve) => setTimeout(resolve, config.delay));
       }
-      
+
       try {
-        const speciesData = await scrapeWithRetry(browser, speciesName, scrapeSpeciesPage, config.retries);
-        
+        const speciesData = await scrapeWithRetry(
+          browser,
+          speciesName,
+          scrapeSpeciesPage,
+          config.retries,
+        );
+
         if (!speciesData || !speciesData.name) {
           console.warn(`\n⚠️  ${speciesName}: Failed to extract data`);
-          
+
           warningCount++;
-          
-          if (!config['continue-on-error']) {
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-            await savePartialOutput(allSpecies, timestamp, 'species');
-            printSummary(successCount, warningCount, errorCount, speciesNames.length);
-            console.log('\n⛔ Stopping due to error.');
+
+          if (!config["continue-on-error"]) {
+            const timestamp = new Date()
+              .toISOString()
+              .replace(/[:.]/g, "-")
+              .slice(0, -5);
+            await savePartialOutput(allSpecies, timestamp, "species");
+            printSummary(
+              successCount,
+              warningCount,
+              errorCount,
+              speciesNames.length,
+            );
+            console.log("\n⛔ Stopping due to error.");
             process.exit(1);
           }
-          
+
           continue;
         }
-        
+
         allSpecies.push(speciesData);
         successCount++;
-        
       } catch (error: any) {
         console.warn(`\n❌ ${speciesName}: ${error.message}`);
-        
+
         errorCount++;
-        
-        if (!config['continue-on-error']) {
-          const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-          await savePartialOutput(allSpecies, timestamp, 'species');
-          printSummary(successCount, warningCount, errorCount, speciesNames.length);
-          console.log('\n⛔ Stopping due to error.');
+
+        if (!config["continue-on-error"]) {
+          const timestamp = new Date()
+            .toISOString()
+            .replace(/[:.]/g, "-")
+            .slice(0, -5);
+          await savePartialOutput(allSpecies, timestamp, "species");
+          printSummary(
+            successCount,
+            warningCount,
+            errorCount,
+            speciesNames.length,
+          );
+          console.log("\n⛔ Stopping due to error.");
           process.exit(1);
         }
       }
     }
-    
-    const outputPath = 'src/data/species.json';
+
+    const outputPath = "src/data/species.json";
     fs.writeFileSync(outputPath, JSON.stringify(allSpecies, null, 2));
     console.log(`\n\n✓ Final output saved to ${outputPath}`);
-    
+
     printSummary(successCount, warningCount, errorCount, speciesNames.length);
-    
   } catch (error: any) {
     console.error(`\n❌ Fatal error: ${error.message}`);
     process.exit(1);
@@ -1380,29 +1650,35 @@ async function scrapeSpecies(browser: puppeteer.Browser): Promise<void> {
 }
 
 async function getAllClassNames(browser: puppeteer.Browser): Promise<string[]> {
-  console.log(`\n📋 Fetching all classes from http://dnd2024.wikidot.com/class:all...`);
-  
+  console.log(
+    `\n📋 Fetching all classes from http://dnd2024.wikidot.com/class:all...`,
+  );
+
   const page = await browser.newPage();
-  
+
   let html: string;
   try {
-    const response = await axios.get('http://dnd2024.wikidot.com/class:all', { timeout: 10000 });
+    const response = await axios.get("http://dnd2024.wikidot.com/class:all", {
+      timeout: 10000,
+    });
     html = response.data;
   } catch (error) {
     console.error(`❌ Failed to fetch class index page`);
     process.exit(1);
   }
-  
+
   await page.setContent(html);
-  
+
   const classLinks = await page.evaluate(() => {
     const links: string[] = [];
-    
+
     // Find all links in the table that point to class pages
-    const allLinks = document.querySelectorAll('a[href^="/artificer:main"], a[href^="/barbarian:main"], a[href^="/bard:main"], a[href^="/cleric:main"], a[href^="/druid:main"], a[href^="/fighter:main"], a[href^="/monk:main"], a[href^="/paladin:main"], a[href^="/ranger:main"], a[href^="/rogue:main"], a[href^="/sorcerer:main"], a[href^="/warlock:main"], a[href^="/wizard:main"]');
-    
-    allLinks.forEach(el => {
-      const href = el.getAttribute('href');
+    const allLinks = document.querySelectorAll(
+      'a[href^="/artificer:main"], a[href^="/barbarian:main"], a[href^="/bard:main"], a[href^="/cleric:main"], a[href^="/druid:main"], a[href^="/fighter:main"], a[href^="/monk:main"], a[href^="/paladin:main"], a[href^="/ranger:main"], a[href^="/rogue:main"], a[href^="/sorcerer:main"], a[href^="/warlock:main"], a[href^="/wizard:main"]',
+    );
+
+    allLinks.forEach((el) => {
+      const href = el.getAttribute("href");
       if (href) {
         // Extract class name from URL (e.g., "/barbarian:main" -> "barbarian")
         const match = href.match(/^\/([a-zA-Z0-9\-]+):main$/);
@@ -1411,385 +1687,498 @@ async function getAllClassNames(browser: puppeteer.Browser): Promise<string[]> {
         }
       }
     });
-    
+
     return [...new Set(links)];
   });
-  
+
   console.log(`  ✓ Found ${classLinks.length} total classes`);
   return classLinks;
 }
 
-async function getCasterTypesFromMulticlassingPage(browser: puppeteer.Browser): Promise<Record<string, 'full' | 'half'>> {
+async function getCasterTypesFromMulticlassingPage(
+  browser: puppeteer.Browser,
+): Promise<Record<string, "full" | "half">> {
   console.log(`  📋 Extracting caster types from multiclassing page...`);
-  
-  const multiclassHtml = await fetchPageHtml('http://dnd2024.wikidot.com/class:multiclassing');
+
+  const multiclassHtml = await fetchPageHtml(
+    "http://dnd2024.wikidot.com/class:multiclassing",
+  );
   const page = await browser.newPage();
   await page.setContent(multiclassHtml);
-  
+
   const pageResult = await page.evaluate(() => {
-    const result: Record<string, 'full' | 'half'> = {};
-    
+    const result: Record<string, "full" | "half"> = {};
+
     // Look for the Spell Slots section (it's in a list, not a paragraph)
-    const spellSlotsHeader = Array.from(document.querySelectorAll('.main-content h3, .main-content h4'))
-      .find(h => h.textContent?.includes('Spell Slots') && h.textContent?.includes('Multiclass'));
-    
+    const spellSlotsHeader = Array.from(
+      document.querySelectorAll(".main-content h3, .main-content h4"),
+    ).find(
+      (h) =>
+        h.textContent?.includes("Spell Slots") &&
+        h.textContent?.includes("Multiclass"),
+    );
+
     if (!spellSlotsHeader) {
-      return { result, listItems: [], debug: 'No header found' };
+      return { result, listItems: [], debug: "No header found" };
     }
-    
+
     // Get the list that follows
-    const list = spellSlotsHeader.parentElement?.querySelector('ul');
+    const list = spellSlotsHeader.parentElement?.querySelector("ul");
     if (!list) {
-      return { result, listItems: [], debug: 'No list found' };
+      return { result, listItems: [], debug: "No list found" };
     }
-    
+
     // Process each list item separately
-    const listItems = Array.from(list.querySelectorAll('li')).map(li => li.textContent || '');
-    const listItemsLower = listItems.map(item => item.toLowerCase());
-    
+    const listItems = Array.from(list.querySelectorAll("li")).map(
+      (li) => li.textContent || "",
+    );
+    const listItemsLower = listItems.map((item) => item.toLowerCase());
+
     // Full casters: "All your levels in the Bard, Cleric, Druid, Sorcerer, and Wizard classes"
-    const fullItem = listItemsLower.find(li => li.includes('all your levels in the'));
+    const fullItem = listItemsLower.find((li) =>
+      li.includes("all your levels in the"),
+    );
     if (fullItem) {
-      const startMarker = 'all your levels in the ';
-      const endMarker = ' classes';
+      const startMarker = "all your levels in the ";
+      const endMarker = " classes";
       const startIdx = fullItem.indexOf(startMarker);
       const endIdx = fullItem.indexOf(endMarker);
       if (startIdx >= 0 && endIdx > startIdx + startMarker.length) {
-        const classesStr = fullItem.substring(startIdx + startMarker.length, endIdx).trim();
+        const classesStr = fullItem
+          .substring(startIdx + startMarker.length, endIdx)
+          .trim();
         // Split by ", " or ", and"
-        const classes = classesStr.split(/,\s*(?:and\s*)?/).map(c => c.trim()).filter(c => c && c.length > 0);
-        classes.forEach(cls => result[cls] = 'full');
+        const classes = classesStr
+          .split(/,\s*(?:and\s*)?/)
+          .map((c) => c.trim())
+          .filter((c) => c && c.length > 0);
+        classes.forEach((cls) => (result[cls] = "full"));
       }
     }
-    
+
     // Half casters: "Half your levels (round up) in the Paladin and Ranger classes"
-    const halfItem = listItemsLower.find(li => li.includes('half your levels (round up) in the'));
+    const halfItem = listItemsLower.find((li) =>
+      li.includes("half your levels (round up) in the"),
+    );
     if (halfItem) {
-      const startMarker = 'half your levels (round up) in the ';
-      const endMarker = ' classes';
+      const startMarker = "half your levels (round up) in the ";
+      const endMarker = " classes";
       const startIdx = halfItem.indexOf(startMarker);
       const endIdx = halfItem.indexOf(endMarker);
       if (startIdx >= 0 && endIdx > startIdx + startMarker.length) {
-        const classesStr = halfItem.substring(startIdx + startMarker.length, endIdx).trim();
+        const classesStr = halfItem
+          .substring(startIdx + startMarker.length, endIdx)
+          .trim();
         // Split by " and "
-        const classes = classesStr.split(/ and /).map(c => c.trim()).filter(c => c && c.length > 0);
-        classes.forEach(cls => result[cls] = 'half');
+        const classes = classesStr
+          .split(/ and /)
+          .map((c) => c.trim())
+          .filter((c) => c && c.length > 0);
+        classes.forEach((cls) => (result[cls] = "half"));
       }
     }
-    
+
     // Artificer special case: "adding half your Artificer levels (round up)"
-    const artificerItem = listItemsLower.find(li => li.includes('adding half your artificer levels'));
+    const artificerItem = listItemsLower.find((li) =>
+      li.includes("adding half your artificer levels"),
+    );
     if (artificerItem) {
-      result['artificer'] = 'half';
+      result["artificer"] = "half";
     }
-    
+
     return { result, listItems, debug: { fullItem, halfItem } };
   });
-  
+
   await page.close();
-  
+
   const casterTypes = pageResult.result;
-  console.log(`  ✓ Found caster types from multiclassing page: ${Object.entries(casterTypes).map(([k, v]) => `${k}:${v}`).join(', ')}`);
-  
+  console.log(
+    `  ✓ Found caster types from multiclassing page: ${Object.entries(
+      casterTypes,
+    )
+      .map(([k, v]) => `${k}:${v}`)
+      .join(", ")}`,
+  );
+
   return casterTypes;
 }
 
-async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void> {
+async function scrapeSpellProgression(
+  browser: puppeteer.Browser,
+): Promise<void> {
   const successCount = { value: 0 };
   const warningCount = { value: 0 };
   const errorCount = { value: 0 };
-  
+
   try {
     // Step 1: Get caster type mapping from multiclassing page
     const casterTypeMap = await getCasterTypesFromMulticlassingPage(browser);
-    const combinedCasterTypes: Record<string, 'full' | 'half'> = { ...casterTypeMap };
-    
+    const combinedCasterTypes: Record<string, "full" | "half"> = {
+      ...casterTypeMap,
+    };
+
     // Step 2: Extract unified spell slots from the multiclass table
     console.log(`\n📋 Extracting unified spell slots from multiclass table...`);
-    
+
     let unifiedSpellSlots: Record<string, number[]> = {};
     try {
-      const multiclassHtml = await fetchPageHtml('http://dnd2024.wikidot.com/class:multiclassing');
+      const multiclassHtml = await fetchPageHtml(
+        "http://dnd2024.wikidot.com/class:multiclassing",
+      );
       const page = await browser.newPage();
       await page.setContent(multiclassHtml);
-      
+
       unifiedSpellSlots = await page.evaluate(() => {
         const result: Record<string, number[]> = {};
-        
+
         // Find the Multiclass Spellcaster table
-        const allTables = document.querySelectorAll('table.wiki-content-table');
-        
+        const allTables = document.querySelectorAll("table.wiki-content-table");
+
         for (const table of allTables) {
-          const tableText = table.textContent?.toLowerCase() || '';
-          
+          const tableText = table.textContent?.toLowerCase() || "";
+
           // Look for the spell slots table
-          if (tableText.includes('multiclass spellcaster') || 
-              (tableText.includes('level') && tableText.includes('1') && tableText.includes('9'))) {
-            
-            const rows = table.querySelectorAll('tr');
-            
+          if (
+            tableText.includes("multiclass spellcaster") ||
+            (tableText.includes("level") &&
+              tableText.includes("1") &&
+              tableText.includes("9"))
+          ) {
+            const rows = table.querySelectorAll("tr");
+
             for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-              const cells = rows[rowIdx].querySelectorAll('th, td');
-              
+              const cells = rows[rowIdx].querySelectorAll("th, td");
+
               if (cells.length === 0) continue;
-              
+
               const levelText = cells[0]?.textContent?.trim();
-              
+
               // Skip header row
               if (!levelText || !/^\d+$/.test(levelText)) continue;
-              
+
               const level = parseInt(levelText, 10);
               const slotsAtLevel: number[] = [];
-              
+
               // Extract slots for each spell level (columns 1-9, skipping level column)
-              for (let colIdx = 1; colIdx <= 9 && colIdx < cells.length; colIdx++) {
+              for (
+                let colIdx = 1;
+                colIdx <= 9 && colIdx < cells.length;
+                colIdx++
+              ) {
                 const slotVal = cells[colIdx]?.textContent?.trim();
-                
+
                 if (/^\d+$/.test(slotVal)) {
                   slotsAtLevel.push(parseInt(slotVal, 10));
                 } else {
                   slotsAtLevel.push(0);
                 }
               }
-              
+
               // Pad to 9 elements if needed
               while (slotsAtLevel.length < 9) {
                 slotsAtLevel.push(0);
               }
-              
+
               result[String(level)] = slotsAtLevel;
             }
-            
+
             break;
           }
         }
-        
+
         return result;
       });
-      
-      console.log(`  ✓ Extracted unified spell slots for ${Object.keys(unifiedSpellSlots).length} levels`);
+
+      console.log(
+        `  ✓ Extracted unified spell slots for ${Object.keys(unifiedSpellSlots).length} levels`,
+      );
     } catch (error: any) {
-      console.warn(`\n⚠️  Failed to extract unified spell slots: ${error.message}`);
+      console.warn(
+        `\n⚠️  Failed to extract unified spell slots: ${error.message}`,
+      );
       errorCount.value++;
     }
-    
+
     // Get all class names
     const classNames = await getAllClassNames(browser);
-    
+
     if (classNames.length === 0) {
-      console.error('❌ No classes found, exiting...');
+      console.error("❌ No classes found, exiting...");
       process.exit(1);
     }
-    
-    console.log(`\n📋 Scraping spell progression for ${classNames.length} classes...\n`);
-    
+
+    console.log(
+      `\n📋 Scraping spell progression for ${classNames.length} classes...\n`,
+    );
+
     // Build output as object with class names as keys
     const spellProgression: Record<string, any> = {};
-    
+
     // Add unifiedSpellSlots at top level
     spellProgression.unifiedSpellSlots = unifiedSpellSlots;
-    
+
     // Process each class
     for (let i = 0; i < classNames.length; i++) {
       if (config.maxItems && i >= config.maxItems) break;
-      
+
       const className = classNames[i];
-      console.log(`\n[${i + 1}/${classNames.length}] Scraping ${className} spell progression...`);
-      
+      console.log(
+        `\n[${i + 1}/${classNames.length}] Scraping ${className} spell progression...`,
+      );
+
       try {
         // Fetch class page HTML
         let html: string;
         try {
-          const response = await axios.get(`http://dnd2024.wikidot.com/${className}:main`, { timeout: 15000 });
+          const response = await axios.get(
+            `http://dnd2024.wikidot.com/${className}:main`,
+            { timeout: 15000 },
+          );
           html = response.data;
         } catch (error) {
           console.error(`  ❌ Failed to fetch class page`);
           errorCount.value++;
           continue;
         }
-        
+
         const page = await browser.newPage();
-        
-        await page.evaluate(() => {
-          (window as any).__name = (fn: Function) => fn;
-        });
-        
+
         await page.setContent(html);
-        
-       // Parse spell progression data and check for multiclassing reference
+
+        // Parse spell progression data and check for multiclassing reference
         const pageData = await page.evaluate((classParam: string) => {
           const result: any = {
-            name: '',
-            spellcastingAbility: '',
+            name: "",
+            spellcastingAbility: "",
             cantripsKnown: [] as number[],
             spellsPrepared: [] as number[],
             spellsAddedPerLevel: [] as number[],
-            casterType: null as 'full' | 'half' | null
+            casterType: null as "full" | "half" | null,
           };
-          
-          const content = document.querySelector('#page-content');
+
+          const content = document.querySelector("#page-content");
           if (!content) return { data: null, hasSpellcasting: false };
-          
+
           // Check for multiclassing spell slots reference. Some classes, including
           // Artificer, put this text in list items rather than paragraphs.
-          const spellcastingReferenceTexts = Array.from(content.querySelectorAll('p, li')).map(node => node.textContent || '');
-          const paragraphTexts = Array.from(content.querySelectorAll('p')).map(p => p.textContent || '');
-          
-        // Detect Artificer's multiclass half-caster language from the class page.
-          const hasArtificerPattern = spellcastingReferenceTexts.some(text => 
-            text.includes('determine your available spell slots') &&
-            text.includes('adding half your Artificer levels')
+          const spellcastingReferenceTexts = Array.from(
+            content.querySelectorAll("p, li"),
+          ).map((node) => node.textContent || "");
+          const paragraphTexts = Array.from(content.querySelectorAll("p")).map(
+            (p) => p.textContent || "",
           );
-          
+
+          // Detect Artificer's multiclass half-caster language from the class page.
+          const hasArtificerPattern = spellcastingReferenceTexts.some(
+            (text) =>
+              text.includes("determine your available spell slots") &&
+              text.includes("adding half your Artificer levels"),
+          );
+
           // SECOND: Check general multiclassing reference for other casters
-          const hasMulticlassingReference = spellcastingReferenceTexts.some(text => 
-            text.includes('See the multiclassing rules') && 
-            text.includes('determine your available spell slots')
+          const hasMulticlassingReference = spellcastingReferenceTexts.some(
+            (text) =>
+              text.includes("See the multiclassing rules") &&
+              text.includes("determine your available spell slots"),
           );
-          
+
           const needsMulticlassFallback = hasMulticlassingReference;
-          
-        // Extract spellcasting ability from Core Traits table first
-           const coreTraitsTable = document.querySelector('table.wiki-content-table');
-           if (coreTraitsTable) {
-             const rows = coreTraitsTable.querySelectorAll('tr');
-             rows.forEach(row => {
-               const cells = row.querySelectorAll('td, th');
-               if (cells.length >= 2) {
-                 const label = cells[0].textContent?.toLowerCase();
-                 if (label && label.includes('primary ability')) {
-                   result.spellcastingAbility = cells[1]?.textContent?.trim().toLowerCase() || '';
-                 }
-               }
-             });
-           }
-           
-           // Refine spellcasting ability from text description
-           const allParagraphs = paragraphTexts.join('\n');
-           
-           if (allParagraphs.includes('Spellcasting Ability')) {
-             const abilityMatch = allParagraphs.match(/Spellcasting Ability\.\s*([A-Z][a-z]+)\s+is\s+your\s+spellcasting\s+ability/i);
-             if (abilityMatch) {
-               result.spellcastingAbility = abilityMatch[1].toLowerCase();
-             }
-           }
-          
+
+          // Extract spellcasting ability from Core Traits table first
+          const coreTraitsTable = document.querySelector(
+            "table.wiki-content-table",
+          );
+          if (coreTraitsTable) {
+            const rows = coreTraitsTable.querySelectorAll("tr");
+            rows.forEach((row) => {
+              const cells = row.querySelectorAll("td, th");
+              if (cells.length >= 2) {
+                const label = cells[0].textContent?.toLowerCase();
+                if (label && label.includes("primary ability")) {
+                  result.spellcastingAbility =
+                    cells[1]?.textContent?.trim().toLowerCase() || "";
+                }
+              }
+            });
+          }
+
+          // Refine spellcasting ability from text description
+          const allParagraphs = paragraphTexts.join("\n");
+
+          if (allParagraphs.includes("Spellcasting Ability")) {
+            const abilityMatch = allParagraphs.match(
+              /Spellcasting Ability\.\s*([A-Z][a-z]+)\s+is\s+your\s+spellcasting\s+ability/i,
+            );
+            if (abilityMatch) {
+              result.spellcastingAbility = abilityMatch[1].toLowerCase();
+            }
+          }
+
           // Find the spell progression table
-          const allTables = document.querySelectorAll('table.wiki-content-table');
-          
+          const allTables = document.querySelectorAll(
+            "table.wiki-content-table",
+          );
+
           for (const table of allTables) {
-            const tableText = table.textContent?.toLowerCase() || '';
-            
-            if ((tableText.includes('cantrips') || tableText.includes('prepared spells')) &&
-                (tableText.includes('1st') || tableText.includes('2nd'))) {
-              
-              const rows = table.querySelectorAll('tr');
+            const tableText = table.textContent?.toLowerCase() || "";
+
+            if (
+              (tableText.includes("cantrips") ||
+                tableText.includes("prepared spells")) &&
+              (tableText.includes("1st") || tableText.includes("2nd"))
+            ) {
+              const rows = table.querySelectorAll("tr");
               let hasLevelColumn = false;
               let cantripColIndex = -1;
               let preparedSpellsColIndex = -1;
-              
+
               if (rows.length > 0) {
-                const headerCells = rows[0].querySelectorAll('th, td');
-                
+                const headerCells = rows[0].querySelectorAll("th, td");
+
                 for (let colIdx = 0; colIdx < headerCells.length; colIdx++) {
-                  const cellText = headerCells[colIdx]?.textContent?.toLowerCase() || '';
-                  
-                  if (cellText.includes('level') && colIdx === 0) {
+                  const cellText =
+                    headerCells[colIdx]?.textContent?.toLowerCase() || "";
+
+                  if (cellText.includes("level") && colIdx === 0) {
                     hasLevelColumn = true;
-                  } else if (cellText.includes('cantrips')) {
+                  } else if (cellText.includes("cantrips")) {
                     cantripColIndex = colIdx;
-                  } else if (cellText.includes('prepared spells')) {
+                  } else if (cellText.includes("prepared spells")) {
                     preparedSpellsColIndex = colIdx;
                   }
                 }
               }
-              
+
               // Parse data rows
               for (let rowIdx = 1; rowIdx < rows.length; rowIdx++) {
-                const cells = rows[rowIdx].querySelectorAll('td');
-                
+                const cells = rows[rowIdx].querySelectorAll("td");
+
                 if (!hasLevelColumn || cells.length === 0) continue;
-                
+
                 const levelText = cells[0]?.textContent?.trim();
                 if (!levelText || !/^\d+$/.test(levelText)) continue;
-                
+
                 const level = parseInt(levelText, 10);
-                
+
                 // Get cantrips known
                 if (cantripColIndex !== -1 && cells[cantripColIndex]) {
-                  const cantripVal = cells[cantripColIndex]?.textContent?.trim();
+                  const cantripVal =
+                    cells[cantripColIndex]?.textContent?.trim();
                   if (/^\d+$/.test(cantripVal)) {
                     result.cantripsKnown[level - 1] = parseInt(cantripVal, 10);
                   }
                 }
-                
+
                 // Get spells prepared
-                if (preparedSpellsColIndex !== -1 && cells[preparedSpellsColIndex]) {
-                  const preparedVal = cells[preparedSpellsColIndex]?.textContent?.trim();
+                if (
+                  preparedSpellsColIndex !== -1 &&
+                  cells[preparedSpellsColIndex]
+                ) {
+                  const preparedVal =
+                    cells[preparedSpellsColIndex]?.textContent?.trim();
                   if (/^\d+$/.test(preparedVal)) {
-                    result.spellsPrepared[level - 1] = parseInt(preparedVal, 10);
+                    result.spellsPrepared[level - 1] = parseInt(
+                      preparedVal,
+                      10,
+                    );
                   }
                 }
               }
-              
+
               break;
             }
           }
-          
-          function parseNumber(text: string): number {
-            const wordMap: Record<string, number> = {
-              'zero': 0, 'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
-              'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10,
-              'eleven': 11, 'twelve': 12, 'thirteen': 13, 'fourteen': 14,
-              'fifteen': 15, 'sixteen': 16, 'seventeen': 17, 'eighteen': 18,
-              'nineteen': 19, 'twenty': 20
-            };
-            
-            const lower = text.toLowerCase();
-            if (wordMap[lower] !== undefined) {
-              return wordMap[lower];
-            }
-            
-            const digit = parseInt(text, 10);
-            return isNaN(digit) ? 0 : digit;
-          }
-          
-          const startMatch = allParagraphs.match(/starts? with ([a-zA-Z0-9\-]+) [level\d\w\s+]* spells?/i);
+
+          const wordMap: Record<string, number> = {
+            zero: 0,
+            one: 1,
+            two: 2,
+            three: 3,
+            four: 4,
+            five: 5,
+            six: 6,
+            seven: 7,
+            eight: 8,
+            nine: 9,
+            ten: 10,
+            eleven: 11,
+            twelve: 12,
+            thirteen: 13,
+            fourteen: 14,
+            fifteen: 15,
+            sixteen: 16,
+            seventeen: 17,
+            eighteen: 18,
+            nineteen: 19,
+            twenty: 20,
+          };
+
+          const startMatch = allParagraphs.match(
+            /starts? with ([a-zA-Z0-9\-]+) [level\d\w\s+]* spells?/i,
+          );
           let startCount = 0;
           if (startMatch) {
-            startCount = parseNumber(startMatch[1]);
+            const text = startMatch[1];
+            const lower = text.toLowerCase();
+            if (wordMap[lower] !== undefined) {
+              startCount = wordMap[lower];
+            } else {
+              const digit = parseInt(text, 10);
+              startCount = isNaN(digit) ? 0 : digit;
+            }
           }
-          
-          const addMatch = allParagraphs.match(/add ([a-zA-Z0-9\-]+) [a-zA-Z]+ spells?.*?to your (spellbook|grimoire)/i);
+
+          const addMatch = allParagraphs.match(
+            /add ([a-zA-Z0-9\-]+) [a-zA-Z]+ spells?.*?to your (spellbook|grimoire)/i,
+          );
           let perLevelAdd = 0;
           if (addMatch) {
-            perLevelAdd = parseNumber(addMatch[1]);
+            const text = addMatch[1];
+            const lower = text.toLowerCase();
+            if (wordMap[lower] !== undefined) {
+              perLevelAdd = wordMap[lower];
+            } else {
+              const digit = parseInt(text, 10);
+              perLevelAdd = isNaN(digit) ? 0 : digit;
+            }
           }
-          
+
           const hasSpellbookPattern = startMatch || addMatch;
-          const spellsAddedPerLevel = hasSpellbookPattern ? new Array(20).fill(perLevelAdd) : [];
+          const spellsAddedPerLevel = hasSpellbookPattern
+            ? new Array(20).fill(perLevelAdd)
+            : [];
           if (startCount > 0) {
             spellsAddedPerLevel[0] = startCount;
           }
           result.spellsAddedPerLevel = spellsAddedPerLevel;
-          
-          const casterType = hasArtificerPattern ? 'half' : result.casterType;
+
+          const casterType = hasArtificerPattern ? "half" : result.casterType;
           return { data: result, needsMulticlassFallback, casterType };
-        });
-        
-     const { data: progressData, needsMulticlassFallback, casterType: casterTypeFromPage } = pageData;
-        
+        }, className);
+
+        const {
+          data: progressData,
+          needsMulticlassFallback,
+          casterType: casterTypeFromPage,
+        } = pageData;
+
         if (!progressData) {
-          console.warn(`\n⚠️  ${className}: Failed to extract spell progression data`);
+          console.warn(
+            `\n⚠️  ${className}: Failed to extract spell progression data`,
+          );
           warningCount.value++;
           continue;
         }
-        
+
         // Prefer the class-page detection when present. Otherwise use the
         // multiclassing-page map for known full/half casters.
-        const casterType = casterTypeFromPage ?? (needsMulticlassFallback ? casterTypeMap[className] ?? null : null);
+        const casterType =
+          casterTypeFromPage ??
+          (needsMulticlassFallback ? (casterTypeMap[className] ?? null) : null);
         if (casterTypeFromPage) {
-          console.log(`  ✓ Found caster type from class page directly: ${className}:${casterTypeFromPage}`);
+          console.log(
+            `  ✓ Found caster type from class page directly: ${className}:${casterTypeFromPage}`,
+          );
         }
         if (casterType) {
           combinedCasterTypes[className] = casterType;
@@ -1801,12 +2190,11 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
           cantripsKnown: progressData.cantripsKnown,
           spellsPrepared: progressData.spellsPrepared,
           spellsAddedPerLevel: progressData.spellsAddedPerLevel,
-          spellSlots: []
+          spellSlots: [],
         };
-        
+
         successCount.value++;
         console.log(`  ✓ Scraped ${className} spell progression`);
-        
       } catch (error: any) {
         console.error(`  ❌ Error: ${error.message}`);
         if (!config.continueOnError) {
@@ -1816,51 +2204,73 @@ async function scrapeSpellProgression(browser: puppeteer.Browser): Promise<void>
       }
     }
 
-    console.log(`\n  ✓ Found caster types: ${Object.entries(combinedCasterTypes).map(([k, v]) => `${k}:${v}`).join(', ')}`);
-    
-    const outputPath = 'src/data/spell-progression.json';
-    
+    console.log(
+      `\n  ✓ Found caster types: ${Object.entries(combinedCasterTypes)
+        .map(([k, v]) => `${k}:${v}`)
+        .join(", ")}`,
+    );
+
+    const outputPath = "src/data/spell-progression.json";
+
     // Custom JSON serializer that keeps 1D arrays compact, 2D+ arrays multiline
     function serializeCompactArrays(obj: any, indent: number = 0): string {
-      const spaces = '  '.repeat(indent);
-      const nextSpaces = '  '.repeat(indent + 1);
-      
+      const spaces = "  ".repeat(indent);
+      const nextSpaces = "  ".repeat(indent + 1);
+
       if (Array.isArray(obj)) {
-        if (obj.length === 0) return '[]';
-        
-        const is1DArray = obj.every(item => typeof item === 'number' || typeof item === 'string' || typeof item === 'boolean' || item === null);
-        
+        if (obj.length === 0) return "[]";
+
+        const is1DArray = obj.every(
+          (item) =>
+            typeof item === "number" ||
+            typeof item === "string" ||
+            typeof item === "boolean" ||
+            item === null,
+        );
+
         if (is1DArray) {
-          return '[' + obj.map(item => 
-            typeof item === 'number' ? String(item) : JSON.stringify(item)
-          ).join(', ') + ']';
+          return (
+            "[" +
+            obj
+              .map((item) =>
+                typeof item === "number" ? String(item) : JSON.stringify(item),
+              )
+              .join(", ") +
+            "]"
+          );
         } else {
-          const items = obj.map(item => nextSpaces + serializeCompactArrays(item, indent + 1));
-          return '[\n' + items.join(',\n') + '\n' + spaces + ']';
+          const items = obj.map(
+            (item) => nextSpaces + serializeCompactArrays(item, indent + 1),
+          );
+          return "[\n" + items.join(",\n") + "\n" + spaces + "]";
         }
       }
-      
-      if (obj !== null && typeof obj === 'object') {
+
+      if (obj !== null && typeof obj === "object") {
         const keys = Object.keys(obj);
-        if (keys.length === 0) return '{}';
-        
-        const props = keys.map(key => {
+        if (keys.length === 0) return "{}";
+
+        const props = keys.map((key) => {
           const value = obj[key];
           const serialized = serializeCompactArrays(value, indent + 1);
           return `${nextSpaces}"${key}": ${serialized}`;
         });
-        
-        return '{\n' + props.join(',\n') + '\n' + spaces + '}';
+
+        return "{\n" + props.join(",\n") + "\n" + spaces + "}";
       }
-      
+
       return JSON.stringify(obj);
     }
-    
+
     fs.writeFileSync(outputPath, serializeCompactArrays(spellProgression));
     console.log(`\n\n✓ Final output saved to ${outputPath}`);
-    
-    printSummary(successCount.value, warningCount.value, errorCount.value, classNames.length);
-    
+
+    printSummary(
+      successCount.value,
+      warningCount.value,
+      errorCount.value,
+      classNames.length,
+    );
   } catch (error: any) {
     console.error(`\n❌ Fatal error: ${error.message}`);
     process.exit(1);
@@ -1871,157 +2281,183 @@ async function scrapeClasses(browser: puppeteer.Browser): Promise<void> {
   const successCount = { value: 0 };
   const warningCount = { value: 0 };
   const errorCount = { value: 0 };
-  
+
   try {
     // Get all class names first
     const classNames = await getAllClassNames(browser);
-    
+
     if (config.maxItems && config.maxItems < classNames.length) {
-      console.log(`\n⚠️  Limiting to first ${config.maxItems} classes for testing`);
+      console.log(
+        `\n⚠️  Limiting to first ${config.maxItems} classes for testing`,
+      );
     } else if (classNames.length > 0) {
       console.log(`\n📋 Scraping all ${classNames.length} classes...`);
     }
-    
+
     const allClasses: any[] = [];
-    
+
     // Process each class
     for (let i = 0; i < classNames.length; i++) {
       if (config.maxItems && i >= config.maxItems) break;
-      
+
       const className = classNames[i];
       console.log(`\n[${i + 1}/${classNames.length}] Scraping ${className}...`);
-      
+
       try {
         // Fetch class page HTML
         let html: string;
         try {
-          const response = await axios.get(`http://dnd2024.wikidot.com/${className}:main`, { timeout: 15000 });
+          const response = await axios.get(
+            `http://dnd2024.wikidot.com/${className}:main`,
+            { timeout: 15000 },
+          );
           html = response.data;
         } catch (error) {
           console.error(`  ❌ Failed to fetch class page`);
           errorCount.value++;
           continue;
         }
-        
+
         const page = await browser.newPage();
         await page.setContent(html);
-        
+
         // Parse class data from HTML
         const classData: any = await page.evaluate(() => {
           const result: any = {
-            name: '',
-            source: 'Player\'s Handbook',
+            name: "",
+            source: "Player's Handbook",
             hitDie: 0,
-            primaryAbility: '',
+            primaryAbility: "",
             savingThrows: [] as string[],
             skillProficiencies: [] as string[],
             weaponProficiencies: [] as string[],
             armorTraining: [] as string[],
-            startingEquipment: '' as string,
-            classFeatures: [] as Array<{level: number; name: string; description: string}>
+            startingEquipment: "" as string,
+            classFeatures: [] as Array<{
+              level: number;
+              name: string;
+              description: string;
+            }>,
           };
-          
+
           // Extract source if present (look for "Source:" text)
-          const content = document.querySelector('#page-content');
+          const content = document.querySelector("#page-content");
           if (content) {
-            const sourceMatch = content.textContent?.match(/Source:\s*([^\n]+)/);
+            const sourceMatch =
+              content.textContent?.match(/Source:\s*([^\n]+)/);
             if (sourceMatch) {
               result.source = sourceMatch[1].trim();
             }
-            
+
             // Extract Core Traits table data
-            const coreTraitsTable = document.querySelector('table.wiki-content-table');
+            const coreTraitsTable = document.querySelector(
+              "table.wiki-content-table",
+            );
             if (coreTraitsTable) {
-              const rows = coreTraitsTable.querySelectorAll('tr');
-              rows.forEach(row => {
-                const cells = row.querySelectorAll('td, th');
+              const rows = coreTraitsTable.querySelectorAll("tr");
+              rows.forEach((row) => {
+                const cells = row.querySelectorAll("td, th");
                 if (cells.length >= 2) {
                   const label = cells[0].textContent?.toLowerCase();
                   const value = cells[1]?.textContent?.trim();
-                  
-                  if (label.includes('hit point die') && value) {
+
+                  if (label.includes("hit point die") && value) {
                     const hitDieMatch = value.match(/d([0-9]+)/i);
                     if (hitDieMatch) {
                       result.hitDie = parseInt(hitDieMatch[1]);
                     }
-                  } else if (label.includes('primary ability') && value) {
+                  } else if (label.includes("primary ability") && value) {
                     result.primaryAbility = value.toLowerCase();
-                  } else if (label.includes('saving throw') && value) {
-                    // Parse "Strength and Constitution" or "Constitution, Intelligence" format  
-                    const parts = value.replace(/and/gi, ',').split(',').map(s => s.trim().toLowerCase());
+                  } else if (label.includes("saving throw") && value) {
+                    // Parse "Strength and Constitution" or "Constitution, Intelligence" format
+                    const parts = value
+                      .replace(/and/gi, ",")
+                      .split(",")
+                      .map((s) => s.trim().toLowerCase());
                     result.savingThrows = parts;
-                  } else if (label.includes('skill proficiencies') && value) {
+                  } else if (label.includes("skill proficiencies") && value) {
                     // Parse "Choose 2: X, Y, Z" format
-                    const skillsMatch = value.match(/(?:Choose\s+(\d+):\s*)?([\w,\s]+)/);
+                    const skillsMatch = value.match(
+                      /(?:Choose\s+(\d+):\s*)?([\w,\s]+)/,
+                    );
                     if (skillsMatch) {
-                      result.skillProficiencies = skillsMatch[2].split(',').map(s => s.trim());
+                      result.skillProficiencies = skillsMatch[2]
+                        .split(",")
+                        .map((s) => s.trim());
                     }
-                  } else if (label.includes('weapon proficiencies') && value) {
+                  } else if (label.includes("weapon proficiencies") && value) {
                     result.weaponProficiencies = [value];
-                  } else if (label.includes('armor training') && value) {
-                    result.armorTraining = value.split(',').map(s => s.trim());
-                  } else if (label.includes('starting equipment') && value) {
+                  } else if (label.includes("armor training") && value) {
+                    result.armorTraining = value
+                      .split(",")
+                      .map((s) => s.trim());
+                  } else if (label.includes("starting equipment") && value) {
                     result.startingEquipment = value;
                   }
                 }
               });
             }
-            
+
             // Extract class features from detailed descriptions below the table
             // Look for "Level X: Feature Name" pattern followed by full description until next Level or end
-            const featureText = content.textContent || '';
-            
+            const featureText = content.textContent || "";
+
             // Split by "Level N:" to get individual features
             const levelSplit = featureText.split(/(?=Level \d+:)/);
-            
-            levelSplit.forEach(segment => {
+
+            levelSplit.forEach((segment) => {
               // Match "Level X: Feature Name" at start of segment
               const headerMatch = segment.match(/^Level (\d+):\s*([^\n]+)/);
               if (!headerMatch) return;
-              
+
               const level = parseInt(headerMatch[1]);
               const name = headerMatch[2].trim();
-              
+
               // Get everything after the header line as description
-              const descriptionStartIndex = segment.indexOf('\n');
-              let description = '';
-              
+              const descriptionStartIndex = segment.indexOf("\n");
+              let description = "";
+
               if (descriptionStartIndex !== -1) {
-                description = segment.substring(descriptionStartIndex + 1).trim();
-                
+                description = segment
+                  .substring(descriptionStartIndex + 1)
+                  .trim();
+
                 // Remove trailing text that looks like navigation or footer content
                 const cleanupPatterns = [
-                  /\s*As a \w+.*$/g,  // "As a Level X Character" etc
+                  /\s*As a \w+.*$/g, // "As a Level X Character" etc
                   /\s*Becoming a \w+.*$/g,
-                  /\s*\d+\s*[A-Z].*$/g  // Random trailing text
+                  /\s*\d+\s*[A-Z].*$/g, // Random trailing text
                 ];
-                
-                cleanupPatterns.forEach(pattern => {
-                  description = description.replace(pattern, '');
+
+                cleanupPatterns.forEach((pattern) => {
+                  description = description.replace(pattern, "");
                 });
               }
-              
+
               // Clean up - remove extra whitespace but preserve paragraph breaks
-              description = description.replace(/\n\s+/g, '\n').replace(/\s+$/g, '').trim();
-              
-              if (description.length > 10) {  // Only add if we have meaningful content
+              description = description
+                .replace(/\n\s+/g, "\n")
+                .replace(/\s+$/g, "")
+                .trim();
+
+              if (description.length > 10) {
+                // Only add if we have meaningful content
                 result.classFeatures.push({
                   level,
                   name,
-                  description
+                  description,
                 });
               }
             });
           }
-          
+
           return result;
         });
-        
+
         classData.name = className;
         allClasses.push(classData);
         successCount.value++;
         console.log(`  ✓ Scraped ${classData.classFeatures.length} features`);
-        
       } catch (error: any) {
         console.error(`  ❌ Error: ${error.message}`);
         if (config.continueOnError) {
@@ -2031,13 +2467,17 @@ async function scrapeClasses(browser: puppeteer.Browser): Promise<void> {
         }
       }
     }
-    
-    const outputPath = 'src/data/classes.json';
+
+    const outputPath = "src/data/classes.json";
     fs.writeFileSync(outputPath, JSON.stringify(allClasses, null, 2));
     console.log(`\n\n✓ Final output saved to ${outputPath}`);
-    
-    printSummary(successCount.value, warningCount.value, errorCount.value, classNames.length);
-    
+
+    printSummary(
+      successCount.value,
+      warningCount.value,
+      errorCount.value,
+      classNames.length,
+    );
   } catch (error: any) {
     console.error(`\n❌ Fatal error: ${error.message}`);
     process.exit(1);
@@ -2046,71 +2486,91 @@ async function scrapeClasses(browser: puppeteer.Browser): Promise<void> {
 
 async function main(): Promise<void> {
   const typesInput = config.types as string;
-  
+
   // Validate that --type is provided and not empty
-  if (!typesInput || typesInput.trim() === '') {
-    console.error('\n❌ Error: Missing required --type parameter');
-    console.error('Valid options: spells, subclasses, feats, backgrounds, species, classes, spell-progression, all');
+  if (!typesInput || typesInput.trim() === "") {
+    console.error("\n❌ Error: Missing required --type parameter");
+    console.error(
+      "Valid options: spells, subclasses, feats, backgrounds, species, classes, spell-progression, all",
+    );
     process.exit(1);
   }
-  
+
   // Parse comma-separated types or use default
   let scrapeTypes: ScrapeType[];
-  if (typesInput === 'all') {
-    scrapeTypes = ['spells', 'subclasses', 'feats', 'backgrounds', 'species', 'spell-progression'];
+  if (typesInput === "all") {
+    scrapeTypes = [
+      "spells",
+      "subclasses",
+      "feats",
+      "backgrounds",
+      "species",
+      "spell-progression",
+    ];
   } else {
-    scrapeTypes = typesInput.split(',').map(t => t.trim()) as ScrapeType[];
-    
+    scrapeTypes = typesInput.split(",").map((t) => t.trim()) as ScrapeType[];
+
     // Validate: check for invalid types
-    const validTypes = ['spells', 'subclasses', 'feats', 'backgrounds', 'species', 'classes', 'spell-progression', 'all'];
+    const validTypes = [
+      "spells",
+      "subclasses",
+      "feats",
+      "backgrounds",
+      "species",
+      "classes",
+      "spell-progression",
+      "all",
+    ];
     for (const type of scrapeTypes) {
       if (!validTypes.includes(type)) {
-        console.error(`\n❌ Error: Invalid type "${type}". Valid options: spells, subclasses, feats, backgrounds, species, classes, spell-progression, all`);
+        console.error(
+          `\n❌ Error: Invalid type "${type}". Valid options: spells, subclasses, feats, backgrounds, species, classes, spell-progression, all`,
+        );
         process.exit(1);
       }
     }
   }
-  
-  console.log('🎯 Starting D&D 2024 Full Scraper\n');
-  console.log(`📋 Scraping: ${scrapeTypes.join(', ')}\n`);
-  console.log('🌐 Launching browser...\n');
-  
+
+  console.log("🎯 Starting D&D 2024 Full Scraper\n");
+  console.log(`📋 Scraping: ${scrapeTypes.join(", ")}\n`);
+  console.log("🌐 Launching browser...\n");
+
   const browser = await puppeteer.launch({ headless: true });
-  
+
   try {
     for (const type of scrapeTypes) {
-      if (type === 'spells') {
-        console.log('📜 Scraping spells...\n');
+      if (type === "spells") {
+        console.log("📜 Scraping spells...\n");
         await scrapeSpells(browser);
-      } else if (type === 'subclasses') {
-        console.log('📜 Scraping subclasses...\n');
+      } else if (type === "subclasses") {
+        console.log("📜 Scraping subclasses...\n");
         await scrapeSubclasses(browser);
-      } else if (type === 'feats') {
-        console.log('📜 Scraping feats...\n');
+      } else if (type === "feats") {
+        console.log("📜 Scraping feats...\n");
         await scrapeFeats(browser);
-      } else if (type === 'backgrounds') {
-        console.log('📜 Scraping backgrounds...\n');
+      } else if (type === "backgrounds") {
+        console.log("📜 Scraping backgrounds...\n");
         await scrapeBackgrounds(browser);
-      } else if (type === 'species') {
-        console.log('📜 Scraping species...\n');
+      } else if (type === "species") {
+        console.log("📜 Scraping species...\n");
         await scrapeSpecies(browser);
-      } else if (type === 'classes') {
-        console.log('📜 Scraping classes...\n');
+      } else if (type === "classes") {
+        console.log("📜 Scraping classes...\n");
         await scrapeClasses(browser);
-      } else if (type === 'spell-progression') {
-        console.log('📜 Scraping spell progression data...\n');
+      } else if (type === "spell-progression") {
+        console.log("📜 Scraping spell progression data...\n");
         await scrapeSpellProgression(browser);
       }
-      
+
       // Add separator between types (except after last)
       const currentIndex = scrapeTypes.indexOf(type);
       if (currentIndex < scrapeTypes.length - 1) {
-        console.log('\n\n' + '='.repeat(60) + '\n');
+        console.log("\n\n" + "=".repeat(60) + "\n");
       }
     }
   } finally {
     await browser.close();
-    console.log('\n👋 Browser closed.');
+    console.log("\n👋 Browser closed.");
   }
 }
 

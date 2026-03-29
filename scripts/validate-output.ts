@@ -53,7 +53,7 @@ const validate = ajv.compile<any>(schema);
 /**
  * Validate data against JSON Schema (generic function)
  */
-export function validateData(data: any[]): {
+export function validateData(data: any, isObjectFormat = false): {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -63,11 +63,8 @@ export function validateData(data: any[]): {
   const warnings: string[] = [];
   const seenNames = new Set<string>();
   
-  // For array schemas (like spell-progression), validate the entire array at once
-  const isArraySchema = schema.type === 'array';
-  
-  if (isArraySchema) {
-    // Validate the whole array against the schema
+  // For object format (spell-progression), validate the object directly
+  if (isObjectFormat) {
     const isValid = validate(data);
     if (!isValid) {
       for (const error of validate.errors || []) {
@@ -75,42 +72,56 @@ export function validateData(data: any[]): {
         errors.push(`Invalid ${field} - ${error.message}`);
       }
     }
-    
-    // Check for duplicate names manually
-    for (const item of data) {
-      const name = item.name || 'Unknown';
-      if (seenNames.has(name)) {
-        errors.push(`Duplicate class name: ${name}`);
-      }
-      seenNames.add(name);
-    }
   } else {
-    // Validate each item individually (for non-array schemas)
-    for (const [index, item] of data.entries()) {
-      const name = item.name || item.title || 'Unknown';
-      const prefix = `${data[0].constructor?.name || 'Item'} #${index + 1} (${name})`;
-      
-      // Check for duplicates
-      if (seenNames.has(name)) {
-        errors.push(`${prefix}: Duplicate ${item.name ? 'name' : 'title'}`);
-        continue;
-      }
-      seenNames.add(name);
-      
-      // Validate against schema
-      const isValid = validate(item);
+    // For array schemas, validate the entire array at once
+    const isArraySchema = schema.type === 'array';
+    
+    if (isArraySchema) {
+      // Validate the whole array against the schema
+      const isValid = validate(data);
       if (!isValid) {
         for (const error of validate.errors || []) {
           const field = error.instancePath ? error.instancePath.slice(1) : 'root';
-          errors.push(`${prefix}: Invalid ${field} - ${error.message}`);
+          errors.push(`Invalid ${field} - ${error.message}`);
         }
-        continue;
+      }
+      
+      // Check for duplicate names manually
+      for (const item of data) {
+        const name = item.name || 'Unknown';
+        if (seenNames.has(name)) {
+          errors.push(`Duplicate class name: ${name}`);
+        }
+        seenNames.add(name);
+      }
+    } else {
+      // Validate each item individually (for non-array schemas)
+      for (const [index, item] of data.entries()) {
+        const name = item.name || item.title || 'Unknown';
+        const prefix = `${data[0].constructor?.name || 'Item'} #${index + 1} (${name})`;
+        
+        // Check for duplicates
+        if (seenNames.has(name)) {
+          errors.push(`${prefix}: Duplicate ${item.name ? 'name' : 'title'}`);
+          continue;
+        }
+        seenNames.add(name);
+        
+        // Validate against schema
+        const isValid = validate(item);
+        if (!isValid) {
+          for (const error of validate.errors || []) {
+            const field = error.instancePath ? error.instancePath.slice(1) : 'root';
+            errors.push(`${prefix}: Invalid ${field} - ${error.message}`);
+          }
+          continue;
+        }
       }
     }
   }
   
   const stats = {
-    total: data.length
+    total: isObjectFormat ? 1 : data.length
   };
   
   return {
@@ -185,10 +196,12 @@ export async function main(): Promise<void> {
   const displayCount = Array.isArray(data) ? data.length : Object.keys(data).filter(k => k !== 'unifiedSpellSlots').length;
   console.log(`📊 Found ${displayCount} classes (+ unifiedSpellSlots)\n`);
   
-  // Validate
-  // For object format (spell-progression), pass data directly; for array format, pass as array
-  const validationResult = Array.isArray(data) ? data : [data];
-  const result = validateData(validationResult);
+   // Validate
+   // For object format (spell-progression), validate the object directly
+   // For array format, validate the array
+   const isObjectFormat = dataType === 'spell-progression';
+   const validationResult = isObjectFormat ? data : (Array.isArray(data) ? data : [data]);
+   const result = validateData(validationResult, isObjectFormat);
   
   // Print statistics
   if (result.stats.total > 0) {
