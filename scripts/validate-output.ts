@@ -27,7 +27,8 @@ if (schemaArgIndex !== -1 && args[schemaArgIndex + 1]) {
     feats: 'src/data/schemas/feat.schema.json',
     backgrounds: 'src/data/schemas/background.schema.json',
     species: 'src/data/schemas/species.schema.json',
-    'spell-progression': 'src/data/schemas/spell-progression.schema.json'
+    'spell-progression': 'src/data/schemas/spell-progression.schema.json',
+    classes: 'src/data/schemas/class.schema.json'
   };
   
   if (!typeToSchema[dataType]) {
@@ -153,6 +154,8 @@ export async function main(): Promise<void> {
       dataType = 'species';
     } else if (schemaName.includes('spell-progression')) {
       dataType = 'spell-progression';
+    } else if (schemaName.includes('class')) {
+      dataType = 'classes';
     } else {
       console.error(`❌ Unknown schema type: ${schemaName}`);
       process.exit(1);
@@ -165,7 +168,8 @@ export async function main(): Promise<void> {
     feats: join(__dirname, '..', 'src', 'data', 'feats.json'),
     backgrounds: join(__dirname, '..', 'src', 'data', 'backgrounds.json'),
     species: join(__dirname, '..', 'src', 'data', 'species.json'),
-    'spell-progression': join(__dirname, '..', 'src', 'data', 'spell-progression.json')
+    'spell-progression': join(__dirname, '..', 'src', 'data', 'spell-progression.json'),
+    classes: join(__dirname, '..', 'src', 'data', 'classes.json')
   };
   
   const dataPath = dataPathMap[dataType];
@@ -194,7 +198,13 @@ export async function main(): Promise<void> {
   
   const itemCount = Array.isArray(data) ? data.length : Object.keys(data).length;
   const displayCount = Array.isArray(data) ? data.length : Object.keys(data).filter(k => k !== 'unifiedSpellSlots').length;
-  console.log(`📊 Found ${displayCount} classes (+ unifiedSpellSlots)\n`);
+  const suffix = dataType === 'spell-progression' ? ' (+ unifiedSpellSlots)' : '';
+  if (dataType === 'spell-progression') {
+    console.log(`📊 Found ${displayCount} spell-progressio(s)${suffix}\n`);
+  } else {
+    const itemType = dataType === 'classes' ? 'class' : dataType.slice(0, -1);
+    console.log(`📊 Found ${displayCount} ${itemType}(s)${suffix}\n`);
+  }
   
    // Validate
    // For object format (spell-progression), validate the object directly
