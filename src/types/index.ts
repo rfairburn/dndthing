@@ -217,11 +217,30 @@ export type Subclass =
   | "wizard_school_of_evocation"
   | "wizard_school_of_illusion";
 
-export interface SpellcastingInfo {
-  cantripsKnown?: number[];
-  spellsKnown?: number[];
-  spellsPrepared?: (abilityMod: number, level: number) => number;
-  spellSlots: Record<string, number[]>;
+export interface ClassSpellProgression {
+  name: string;
+  spellcastingAbility: string;
+  casterType: "full" | "half" | null;
+  cantripsKnown: number[];
+  spellsPrepared: number[];
+  spellsAddedPerLevel: number[];
+}
+
+export interface SpellProgressionData {
+  unifiedSpellSlots: Record<string, number[]>;
+  artificer: ClassSpellProgression;
+  barbarian: ClassSpellProgression;
+  bard: ClassSpellProgression;
+  cleric: ClassSpellProgression;
+  druid: ClassSpellProgression;
+  fighter: ClassSpellProgression;
+  monk: ClassSpellProgression;
+  paladin: ClassSpellProgression;
+  ranger: ClassSpellProgression;
+  rogue: ClassSpellProgression;
+  sorcerer: ClassSpellProgression;
+  warlock: ClassSpellProgression;
+  wizard: ClassSpellProgression;
 }
 
 export interface ClassData {
@@ -234,7 +253,7 @@ export interface ClassData {
   toolProficiencies?: ToolProficiency[];
   startingEquipment: StartingEquipment[];
   classFeatures: ClassFeature[];
-  spellcastingInfo?: SpellcastingInfo;
+  spellcastingProgression?: ClassSpellProgression;
 }
 
 export interface StartingEquipment {

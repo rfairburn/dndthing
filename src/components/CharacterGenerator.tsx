@@ -3,9 +3,19 @@ import type { Character, Species, Background, Subclass, ClassType } from '../typ
 import { SPECIES } from '../data/species';
 import { BACKGROUNDS } from '../data/backgrounds';
 import { CLASSES } from '../data/classes';
+import { SPELL_PROGRESSION } from '../data/spell-progression';
 import { getSpellsForClass } from '../data/spells';
 import { calculateAbilityModifier } from '../utils/calculations';
 import InventoryManager from './InventoryManager';
+
+const getClassSpellProgression = (classKey: ClassType) => {
+  return CLASSES[classKey]?.spellcastingProgression;
+};
+
+const hasSpellbook = (classKey: ClassType): boolean => {
+  const progression = getClassSpellProgression(classKey);
+  return (progression?.spellsAddedPerLevel?.length ?? 0) > 0;
+};
 
 const SUBCLASSES: Record<ClassType, Subclass[]> = {
   artificer: ["artificer_armorer", "artificer_alchemist", "artificer_battle_smith", "artificer_mystic"],
@@ -238,28 +248,49 @@ export default function CharacterGenerator() {
 
   const handleClassSelect = (classKey: ClassType) => {
     const classData = CLASSES[classKey];
-    const isWizard = classKey === 'wizard';
+    const isWarlock = classKey === 'warlock';
     
-    // Get all spells and filter by the selected class
     const allSpellsForClass = getSpellsForClass(classKey);
+    const progression = getClassSpellProgression(classKey);
     
-    // Initialize wizard: 3 known cantrips (separate from spellbook) + 6 level 1 spells in spellbook (per SRD 2024)
     let initialSpellbook: string[] = [];
-    if (isWizard) {
-      // Cantrips are "known" separately, not in spellbook
-      const allCantrips = allSpellsForClass.filter(s => s.level === 0);
-      const level1Spells = allSpellsForClass.filter(s => s.level === 1).slice(0, 6).map(s => s.name);
-      
-      // Start with first 3 cantrips as "known" (separate from spellbook)
-      setCharacter(prev => ({
-        ...prev,
-        cantripsKnown: allCantrips.slice(0, 3).map(s => s.name),
-        wizardSpellbook: level1Spells
-      }));
-      
-      initialSpellbook = level1Spells;
+    
+    if (progression) {
+      if (!isWarlock && hasSpellbook(classKey)) {
+        const startingSpellbookSize = progression.spellsAddedPerLevel[0] || 6;
+        const startingCantripLimit = progression.cantripsKnown[0] || 3;
+        
+        const allCantrips = allSpellsForClass.filter(s => s.level === 0);
+        const level1Spells = allSpellsForClass
+          .filter(s => s.level === 1)
+          .slice(0, startingSpellbookSize)
+          .map(s => s.name);
+        
+        setCharacter(prev => ({
+          ...prev,
+          cantripsKnown: allCantrips.slice(0, startingCantripLimit).map(s => s.name),
+          wizardSpellbook: level1Spells
+        }));
+        
+        initialSpellbook = level1Spells;
+      } else if (isWarlock) {
+        const allCantrips = allSpellsForClass.filter(s => s.level === 0);
+        const cantripLimit = progression.cantripsKnown[0] || 2;
+        
+        setCharacter(prev => ({
+          ...prev,
+          cantripsKnown: allCantrips.slice(0, cantripLimit).map(s => s.name),
+          wizardSpellbook: []
+        }));
+      } else {
+        setCharacter(prev => ({
+          ...prev,
+          cantripsKnown: [],
+          wizardSpellbook: []
+        }));
+      }
     }
-
+    
     setCharacter(prev => ({
       ...prev,
       classData: { class: classKey },
@@ -346,30 +377,25 @@ const handleLevelChange = (level: number) => {
     let updatedCantripsKnown = [...character.cantripsKnown];
     
     if (isWizard && level > 1) {
-      // Add two new wizard spells per level gained for levels 2-20
       const allSpellsForClass = getSpellsForClass(classKey);
       
-      // Calculate max spell level based on spell slots
-      const spellcastingInfo = CLASSES.wizard.spellcastingInfo;
+      const levelKey = String(level);
+      const slots = SPELL_PROGRESSION.unifiedSpellSlots[levelKey];
       let maxSpellLevel = 0;
-      if (spellcastingInfo?.spellSlots) {
-        for (let l = 9; l >= 1; l--) {
-          const slotKey = `level${l}` as keyof typeof spellcastingInfo.spellSlots;
-          const slots = spellcastingInfo.spellSlots[slotKey];
-          if (slots && slots[Math.min(level - 1, 19)] && slots[Math.min(level - 1, 19)] > 0) {
-            maxSpellLevel = l;
+      if (slots) {
+        for (let i = 8; i >= 0; i--) {
+          if (slots[i] > 0) {
+            maxSpellLevel = i + 1;
             break;
           }
         }
       }
       
-      // Find spells not already in spellbook (level 1+, cantrips are separate)
       const availableSpells = allSpellsForClass.filter(
         s => s.level > 0 && s.level <= maxSpellLevel && !updatedSpellbook.includes(s.name)
       );
       
-      // Add up to 2 new spells per level gained (from previous level to current)
-      const levelsGained = level - 1; // How many levels above 1st
+      const levelsGained = level - 1;
       const newSpellsToAdd = Math.min(availableSpells.length, levelsGained * 2);
       const newSpells = availableSpells.slice(0, newSpellsToAdd).map(s => s.name);
       
@@ -377,12 +403,10 @@ const handleLevelChange = (level: number) => {
         updatedSpellbook = [...updatedSpellbook, ...newSpells];
       }
       
-      // Handle cantrip progression: +1 at levels 4 and 10
-      const spellcastingInfoForWizard = CLASSES.wizard.spellcastingInfo;
-      if (spellcastingInfoForWizard?.cantripsKnown) {
-        const currentCantripLimit = spellcastingInfoForWizard.cantripsKnown[Math.min(level - 1, 19)] || 0;
+      const wizardProgression = getClassSpellProgression('wizard');
+      if (wizardProgression?.cantripsKnown) {
+        const currentCantripLimit = wizardProgression.cantripsKnown[Math.min(level - 1, 19)] || 0;
         
-        // If we've gained a cantrip slot at this level, add one more
         if (currentCantripLimit > character.cantripsKnown.length) {
           const allCantrips = allSpellsForClass.filter(s => s.level === 0);
           const availableCantrips = allCantrips.filter(
@@ -799,12 +823,11 @@ const renderAbilityScoresStep = () => {
 
   const renderSpellsStep = () => {
     const classKey = character.classData.class;
-    const classData = CLASSES[classKey];
     
-    // Get all spells and filter by the selected class
     const allSpellsForClass = getSpellsForClass(classKey);
+    const progression = getClassSpellProgression(classKey);
     
-    if (!classData.spellcastingInfo) {
+    if (!progression || progression.casterType === null) {
       return (
         <div className="max-w-4xl mx-auto">
           <h2 className="text-3xl font-bold mb-6 text-purple-400">Spells</h2>
@@ -813,19 +836,16 @@ const renderAbilityScoresStep = () => {
       );
     }
 
-    const spellcastingInfo = classData.spellcastingInfo;
     const isWizard = classKey === 'wizard';
     const cantrips = allSpellsForClass.filter(s => s.level === 0);
     const leveledSpells = allSpellsForClass.filter(s => s.level > 0);
     
     const getMaxSpellLevel = () => {
-      if (!spellcastingInfo.spellSlots) return 0;
-      for (let level = 9; level >= 1; level--) {
-        const slotKey = `level${level}` as keyof typeof spellcastingInfo.spellSlots;
-        const slots = spellcastingInfo.spellSlots[slotKey];
-        if (slots && slots[Math.min(character.level, 20)] && slots[Math.min(character.level, 20)] > 0) {
-          return level;
-        }
+      const levelKey = String(character.level);
+      const slots = SPELL_PROGRESSION.unifiedSpellSlots[levelKey];
+      if (!slots) return 0;
+      for (let i = 8; i >= 0; i--) {
+        if (slots[i] > 0) return i + 1;
       }
       return 0;
     };
@@ -865,7 +885,6 @@ const renderAbilityScoresStep = () => {
       setCharacter(prev => {
         const isInSpellbook = prev.wizardSpellbook.includes(spellName);
         
-        // If removing, allow it freely
         if (isInSpellbook) {
           return {
             ...prev,
@@ -873,10 +892,9 @@ const renderAbilityScoresStep = () => {
           };
         }
         
-        // If adding, check limit
         const spellbookLimit = 6 + (prev.level - 1) * 2;
         if (prev.wizardSpellbook.length >= spellbookLimit) {
-          return prev; // Don't add if at limit
+          return prev;
         }
         
         return {
@@ -887,51 +905,23 @@ const renderAbilityScoresStep = () => {
     };
 
     const getCantripLimit = () => {
-      if (!spellcastingInfo.cantripsKnown) return 0;
-      return spellcastingInfo.cantripsKnown[Math.min(character.level - 1, 19)] || 0;
+      const progression = getClassSpellProgression(classKey);
+      if (!progression || !progression.casterType) return 0;
+      return progression.cantripsKnown[0] || 0;
     };
-
-    
 
     const getSpellbookLimit = () => {
       if (!isWizard) return 0;
-      // Wizard spellbook: starts with 6 at level 1, +2 per wizard level after 1st
-      return 6 + (character.level - 1) * 2;
+      const progression = getClassSpellProgression(classKey);
+      if (!progression || !hasSpellbook(classKey)) return 0;
+      return progression.spellsAddedPerLevel[0] || 6;
     };
 
-
-
-      const getPreparedSpellLimit = () => {
-        if (spellcastingInfo.spellsKnown) {
-          return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
-        }
-        
-        // Determine which ability score to use based on class
-        let abilityScore: number | undefined;
-        if (classKey === 'artificer' || classKey === 'wizard') {
-          abilityScore = character.abilityScores.intelligence;
-        } else if (classKey === 'cleric' || classKey === 'druid') {
-          abilityScore = character.abilityScores.wisdom;
-        } else if (classKey === 'bard' || classKey === 'paladin' || classKey === 'sorcerer' || classKey === 'warlock') {
-          abilityScore = character.abilityScores.charisma;
-        } else if (classKey === 'ranger') {
-          // Rangers can use Wisdom or Dexterity, default to Wisdom for spellcasting
-          abilityScore = character.abilityScores.wisdom ?? character.abilityScores.dexterity;
-        }
-        
-        // If ability score is not set yet, return a placeholder value (assuming 10 = +0 modifier)
-        if (spellcastingInfo.spellsPrepared && abilityScore !== undefined) {
-          const abilityMod = calculateAbilityModifier(abilityScore);
-          return spellcastingInfo.spellsPrepared(abilityMod, character.level);
-        }
-        
-        // Fallback: assume 10 in the primary ability (+0 modifier) if not set yet
-        if (spellcastingInfo.spellsPrepared) {
-          return spellcastingInfo.spellsPrepared(0, character.level);
-        }
-        
-        return 0;
-      };
+    const getPreparedSpellLimit = () => {
+      const progression = getClassSpellProgression(classKey);
+      if (!progression || !progression.casterType) return 0;
+      return progression.spellsPrepared[0] || 0;
+    };
 
     const maxSpellLevel = getMaxSpellLevel();
 
@@ -1269,41 +1259,32 @@ const renderAbilityScoresStep = () => {
   const renderReviewStep = () => {
     const classKey = character.classData.class;
     const isWizard = classKey === 'wizard';
-    const classData = CLASSES[classKey];
-    const spellcastingInfo = classData.spellcastingInfo;
+    const progression = getClassSpellProgression(classKey);
     
     const getCantripLimit = () => {
-      if (!spellcastingInfo?.cantripsKnown) return 0;
-      return spellcastingInfo.cantripsKnown[Math.min(character.level - 1, 19)] || 0;
+      if (!progression?.casterType) return 0;
+      return progression.cantripsKnown[0] || 0;
     };
 
     const getSpellbookCount = () => {
       if (isWizard) return character.wizardSpellbook.length;
-      if (!spellcastingInfo?.spellsKnown) return 0;
-      return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
+      if (!progression) return 0;
+      return progression.spellsPrepared[0] || 0;
     };
 
     const getSpellbookLimit = () => {
       if (isWizard) {
-        // Wizard spellbook: starts with 6 at level 1, +2 per wizard level after 1st
-        return 6 + (character.level - 1) * 2;
+        if (!progression) return 0;
+        return progression.spellsAddedPerLevel[0] || 6;
       }
-      if (!spellcastingInfo?.spellsKnown) return 0;
-      return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
+      if (!progression) return 0;
+      return progression.spellsPrepared[0] || 0;
     };
 
     const getPreparedSpellLimit = () => {
-        if (isWizard && spellcastingInfo?.spellsPrepared) {
-          const abilityMod = calculateAbilityModifier(character.abilityScores.intelligence);
-          return spellcastingInfo.spellsPrepared(abilityMod, character.level);
-        }
-        if (spellcastingInfo?.spellsPrepared && character.abilityScores.charisma !== undefined) {
-          const abilityMod = calculateAbilityModifier(character.abilityScores.charisma);
-          return spellcastingInfo.spellsPrepared(abilityMod, character.level);
-        }
-        if (!spellcastingInfo?.spellsKnown) return 0;
-        return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
-      };
+      if (!progression?.casterType) return 0;
+      return progression.spellsPrepared[0] || 0;
+    };
 
       return (
       <div className="max-w-4xl mx-auto">
