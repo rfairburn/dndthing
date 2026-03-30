@@ -248,7 +248,6 @@ export default function CharacterGenerator() {
 
   const handleClassSelect = (classKey: ClassType) => {
     const classData = CLASSES[classKey];
-    const isWarlock = classKey === 'warlock';
     
     const allSpellsForClass = getSpellsForClass(classKey);
     const progression = getClassSpellProgression(classKey);
@@ -256,7 +255,7 @@ export default function CharacterGenerator() {
     let initialSpellbook: string[] = [];
     
     if (progression) {
-      if (!isWarlock && hasSpellbook(classKey)) {
+      if (hasSpellbook(classKey)) {
         const startingSpellbookSize = progression.spellsAddedPerLevel[0] || 6;
         const startingCantripLimit = progression.cantripsKnown[0] || 3;
         
@@ -273,7 +272,7 @@ export default function CharacterGenerator() {
         }));
         
         initialSpellbook = level1Spells;
-      } else if (isWarlock) {
+      } else if (progression.casterType !== null) {
         const allCantrips = allSpellsForClass.filter(s => s.level === 0);
         const cantripLimit = progression.cantripsKnown[0] || 2;
         
@@ -371,12 +370,11 @@ export default function CharacterGenerator() {
 
 const handleLevelChange = (level: number) => {
     const classKey = character.classData.class;
-    const isWizard = classKey === 'wizard';
     
     let updatedSpellbook = [...character.wizardSpellbook];
     let updatedCantripsKnown = [...character.cantripsKnown];
     
-    if (isWizard && level > 1) {
+    if (hasSpellbook(classKey) && level > 1) {
       const allSpellsForClass = getSpellsForClass(classKey);
       
       const levelKey = String(level);
@@ -403,9 +401,9 @@ const handleLevelChange = (level: number) => {
         updatedSpellbook = [...updatedSpellbook, ...newSpells];
       }
       
-      const wizardProgression = getClassSpellProgression('wizard');
-      if (wizardProgression?.cantripsKnown) {
-        const currentCantripLimit = wizardProgression.cantripsKnown[Math.min(level - 1, 19)] || 0;
+      const classProgression = getClassSpellProgression(classKey);
+      if (classProgression?.cantripsKnown) {
+        const currentCantripLimit = classProgression.cantripsKnown[Math.min(level - 1, 19)] || 0;
         
         if (currentCantripLimit > character.cantripsKnown.length) {
           const allCantrips = allSpellsForClass.filter(s => s.level === 0);
@@ -836,7 +834,7 @@ const renderAbilityScoresStep = () => {
       );
     }
 
-    const isWizard = classKey === 'wizard';
+    const hasSpellbookForClass = hasSpellbook(classKey);
     const cantrips = allSpellsForClass.filter(s => s.level === 0);
     const leveledSpells = allSpellsForClass.filter(s => s.level > 0);
     
@@ -859,7 +857,7 @@ const renderAbilityScoresStep = () => {
     };
 
     const isInSpellbook = (spellName: string) => {
-      if (!isWizard) return false;
+      if (!hasSpellbookForClass) return false;
       return character.wizardSpellbook.includes(spellName);
     };
 
@@ -888,11 +886,13 @@ const renderAbilityScoresStep = () => {
         if (isInSpellbook) {
           return {
             ...prev,
-            wizardSpellbook: prev.wizardSpellbook.filter(s => s !== spellName)
+            wizardSpellbook: prev.wizardSpellbook.filter(s => s !== spellName),
+            knownSpells: prev.knownSpells.filter(s => s !== spellName)
           };
         }
         
-        const spellbookLimit = 6 + (prev.level - 1) * 2;
+        const progression = getClassSpellProgression('wizard');
+        const spellbookLimit = progression?.spellsAddedPerLevel[0] || 6;
         if (prev.wizardSpellbook.length >= spellbookLimit) {
           return prev;
         }
@@ -911,7 +911,7 @@ const renderAbilityScoresStep = () => {
     };
 
     const getSpellbookLimit = () => {
-      if (!isWizard) return 0;
+      if (!hasSpellbookForClass) return 0;
       const progression = getClassSpellProgression(classKey);
       if (!progression || !hasSpellbook(classKey)) return 0;
       return progression.spellsAddedPerLevel[0] || 6;
@@ -934,7 +934,7 @@ const renderAbilityScoresStep = () => {
         <h2 className="text-3xl font-bold mb-6 text-purple-400">Choose Your Spells</h2>
         
         <div className="mb-8 p-4 bg-purple-900/30 rounded-lg">
-          {isWizard ? (
+          {hasSpellbookForClass ? (
             <p className="text-gray-300">
               Cantrips Known: {character.cantripsKnown.length} / {getCantripLimit()} | 
               Spellbook: {character.wizardSpellbook.length} / {getSpellbookLimit()} | 
@@ -950,7 +950,7 @@ const renderAbilityScoresStep = () => {
 
         <div className="mb-8">
           <h3 className="text-xl font-bold mb-4 text-purple-300">Cantrips</h3>
-          {isWizard ? (
+          {hasSpellbookForClass ? (
             <p className="text-gray-400 mb-4">Wizards know cantrips separately from their spellbook. Click to add/remove known cantrips.</p>
           ) : (
             <p className="text-gray-400 mb-4">Select your known cantrips. You know {getCantripLimit()} cantrips at this level.</p>
@@ -958,7 +958,7 @@ const renderAbilityScoresStep = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredCantrips.map(spell => {
               const isSelected = isCantripSelected(spell.name);
-              const isAtLimit = !isWizard && character.cantripsKnown.length >= getCantripLimit();
+              const isAtLimit = !hasSpellbookForClass && character.cantripsKnown.length >= getCantripLimit();
               
               return (
               <button
@@ -970,7 +970,7 @@ const renderAbilityScoresStep = () => {
                     ? 'border-green-500 bg-green-900/30'
                     : isAtLimit
                       ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
-                      : isWizard && character.cantripsKnown.length >= getCantripLimit() && !isSelected
+                      : hasSpellbookForClass && character.cantripsKnown.length >= getCantripLimit() && !isSelected
                         ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
                         : 'border-gray-700 hover:border-purple-500 bg-gray-800'
                 }`}
@@ -999,34 +999,34 @@ const renderAbilityScoresStep = () => {
           return (
             <div key={level} className="mb-8">
               <h3 className="text-xl font-bold mb-4 text-purple-300">Level {level} Spells</h3>
-              {isWizard ? (
+              {hasSpellbookForClass ? (
                 <p className="text-gray-400 mb-4">Click to add/remove spells from your spellbook. Then prepare your daily spells below.</p>
               ) : (
                 <p className="text-gray-400 mb-4">Select your known/prepared spells. You know {getPreparedSpellLimit()} at this level.</p>
               )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {spellsAtLevel.map(spell => {
-                  const spellbookLimit = isWizard ? 6 + (character.level - 1) * 2 : 0;
-                  const isAtSpellbookLimit = isWizard && character.wizardSpellbook.length >= spellbookLimit;
-                  const isAtPreparedLimit = !isWizard && character.knownSpells.length >= getPreparedSpellLimit();
+                  const spellbookLimit = hasSpellbookForClass ? (getClassSpellProgression(classKey)?.spellsAddedPerLevel[0] || 6) : 0;
+                  const isAtSpellbookLimit = hasSpellbookForClass && character.wizardSpellbook.length >= spellbookLimit;
+                  const isAtPreparedLimit = !hasSpellbookForClass && character.knownSpells.length >= getPreparedSpellLimit();
                   
                   return (
                     <button
                       key={spell.name}
-                      onClick={() => isWizard ? toggleSpellInSpellbook(spell.name) : toggleSpellPreparation(spell.name)}
-                      disabled={isWizard 
+                      onClick={() => hasSpellbookForClass ? toggleSpellInSpellbook(spell.name) : toggleSpellPreparation(spell.name)}
+                      disabled={hasSpellbookForClass 
                         ? !isInSpellbook(spell.name) && isAtSpellbookLimit
                         : !isSpellPreparedOrKnown(spell.name) && isAtPreparedLimit
                       }
                       className={`p-4 rounded-lg border-2 transition-all text-left ${
-                        isWizard && isInSpellbook(spell.name) ? 'border-green-500 bg-green-900/30' :
-                          isWizard && !isInSpellbook(spell.name) && isAtSpellbookLimit
+                        hasSpellbookForClass && isInSpellbook(spell.name) ? 'border-green-500 bg-green-900/30' :
+                          hasSpellbookForClass && !isInSpellbook(spell.name) && isAtSpellbookLimit
                             ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
-                            : isWizard && !isInSpellbook(spell.name)
+                            : hasSpellbookForClass && !isInSpellbook(spell.name)
                               ? 'border-gray-700 hover:border-purple-500 bg-gray-800'
                             : isSpellPreparedOrKnown(spell.name)
                               ? 'border-green-500 bg-green-900/30'
-                              : !isWizard && isAtPreparedLimit
+                              : !hasSpellbookForClass && isAtPreparedLimit
                                 ? 'border-gray-700 bg-gray-800 opacity-50 cursor-not-allowed'
                                 : 'border-gray-700 hover:border-purple-500 bg-gray-800'
                       }`}
@@ -1049,7 +1049,7 @@ const renderAbilityScoresStep = () => {
           );
         })}
 
-        {isWizard && (
+        {hasSpellbookForClass && (
           <div className="mt-8 p-4 bg-blue-900/30 rounded-lg border-2 border-blue-600">
             <h4 className="font-bold text-blue-300 mb-2">Prepare Daily Spells</h4>
             <p className="text-sm text-gray-300 mb-2">Select spells from your spellbook to prepare. You can prepare {getPreparedSpellLimit()} spells at this level.</p>
@@ -1258,7 +1258,7 @@ const renderAbilityScoresStep = () => {
 
   const renderReviewStep = () => {
     const classKey = character.classData.class;
-    const isWizard = classKey === 'wizard';
+    const hasSpellbookForClass = hasSpellbook(classKey);
     const progression = getClassSpellProgression(classKey);
     
     const getCantripLimit = () => {
@@ -1267,13 +1267,13 @@ const renderAbilityScoresStep = () => {
     };
 
     const getSpellbookCount = () => {
-      if (isWizard) return character.wizardSpellbook.length;
+      if (hasSpellbookForClass) return character.wizardSpellbook.length;
       if (!progression) return 0;
       return progression.spellsPrepared[0] || 0;
     };
 
     const getSpellbookLimit = () => {
-      if (isWizard) {
+      if (hasSpellbookForClass) {
         if (!progression) return 0;
         return progression.spellsAddedPerLevel[0] || 6;
       }
@@ -1373,10 +1373,10 @@ const renderAbilityScoresStep = () => {
           </div>
         )}
 
-        {(character.cantripsKnown.length > 0 || character.knownSpells.length > 0 || (character.classData.class === 'wizard' && character.wizardSpellbook.length > 0)) && (
+        {(character.cantripsKnown.length > 0 || character.knownSpells.length > 0 || (hasSpellbookForClass && character.wizardSpellbook.length > 0)) && (
           <div className="mb-6 p-4 bg-gray-700 rounded-lg">
             <h4 className="font-bold mb-2">Spells</h4>
-            {isWizard ? (
+            {hasSpellbookForClass ? (
               <>
                 <p className="text-sm text-green-300 font-semibold mb-1">Cantrips Known ({character.cantripsKnown.length}/{getCantripLimit()}):</p>
                 <div className="flex flex-wrap gap-2 mb-3">
