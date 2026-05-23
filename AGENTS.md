@@ -51,11 +51,13 @@ Open these only when relevant:
 - `docs/agent/scraping.md` - scraper workflow, commands, and data-validation guidance
 - `docs/agent/srd-rules.md` - SRD query workflow and rules lookup notes
 - `docs/agent/frontend-data.md` - UI/state patterns, data-shape guidance, and file map
+- `docs/agent/testing.md` - test setup, coverage, and writing new tests
 
 ## Common Commands
 ```bash
 npm run dev
 npm run build
+npm run test
 npx tsx scripts/scrape-dnd2024.ts --types <type> --max-items 5
 npm run query:srd "<search terms>"
 ```
