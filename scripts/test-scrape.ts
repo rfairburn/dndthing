@@ -33,7 +33,9 @@ async function testScrape(spellName: string): Promise<void> {
   }
   
   // Launch browser and inspect structure
-  const browser = await puppeteer.launch({ headless: true });
+  // --no-sandbox: required on hosts where AppArmor blocks unprivileged user
+  // namespaces (kernel.apparmor_restrict_unprivileged_userns=1), e.g. Ubuntu 24.04+
+  const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
   
   try {
     const page = await browser.newPage();
