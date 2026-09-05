@@ -964,6 +964,272 @@
     "description": "Maybe you needed the money. Maybe you longed for a family, no matter how dubious. Or maybe you’re just good at getting the job done by any means necessary. Whatever your reason, you enlisted with the Zhentarim, the most notorious mercenary guild in the Realms. Though the Zhentarim’s leaders insist the organization is more like a family than a shadowy syndicate, few families exhibit as much dishonesty, nepotism, and corruption as this one. You’ve honed your cunning, reflexes, and blade to climb the guild’s ranks."
   },
   {
+    "name": "Haunted One",
+    "source": "Ravenloft - The Horrors Within",
+    "abilityScores": [
+      "Constitution",
+      "Wisdom",
+      "Charisma"
+    ],
+    "feat": "Survivor or a Dark Gift feat of your choice",
+    "skillProficiencies": [
+      "Arcana",
+      "Survival"
+    ],
+    "toolProficiency": [
+      "Choose one kind of Gaming Set"
+    ],
+    "equipment": "Choose A or B: (A) Gaming Set (same as above), Crowbar, Holy Water (1 flask), Mirror, Oil(2 flasks), Signal Whistle, Tinderbox, Traveler’s Clothes, 5 Torches, Waterskin, and 14 GP; or (B) 50 GP",
+    "description": "You are haunted by the events of your past. Whether it was a lone terrible incident or an accumulation of painful moments, you bear the unshakable weight of what happened to you. You’ve tried to bury it and run away from it, to no avail; it can’t be slain with a sword or banished via magic. Nevertheless, you persist."
+  },
+  {
+    "name": "Investigator",
+    "source": "Ravenloft - The Horrors Within",
+    "abilityScores": [
+      "Intelligence",
+      "Wisdom",
+      "Charisma"
+    ],
+    "feat": "Sharp Eye or a Dark Gift feat of your choice",
+    "skillProficiencies": [
+      "Insight",
+      "Investigation"
+    ],
+    "toolProficiency": [
+      "Disguise Kit"
+    ],
+    "equipment": "Choose A or B: (A) Disguise Kit, Manacles, Shovel, Traveler’s Clothes, 3 Vials, and 16 GP; or (B) 50 GP",
+    "description": "You relentlessly seek the truth. Perhaps you witnessed something remarkable or terrible and now desire to unravel its mystery, or maybe you’re motivated by universal justice and honesty. Whether the cases you’re embroiled in are local crimes or eldritch conspiracies, you’re driven to reveal what others would keep hidden."
+  },
+  {
+    "name": "Mist Wanderer",
+    "source": "Ravenloft - The Horrors Within",
+    "abilityScores": [
+      "Dexterity",
+      "Constitution",
+      "Wisdom"
+    ],
+    "feat": "A Dark Gift feat of your choice (see “Feats” later in this chapter; Mist Walker is recommended)",
+    "skillProficiencies": [
+      "Survival",
+      "Stealth"
+    ],
+    "toolProficiency": [
+      "Choose one kind of Artisan’s Tools"
+    ],
+    "equipment": "Choose A or B: (A) Artisan’s Tools (same as above), Lamp, Oil (5 flasks), Pouch, Rope, Tinderbox, Traveler’s Clothes, and 30 GP; or (B) 50 GP",
+    "description": "You once knew your home. But one day, the Mists rose and drew you into a Domain of Dread. Ever since, you have wandered between domains, braving the mercurial Mists as you search for a way home. Your time in these cursed realms has changed you, yet you find solace in communities of fellow wanderers throughout the Mists."
+  },
+  {
+    "name": "Spirit Medium",
+    "source": "Ravenloft - The Horrors Within",
+    "abilityScores": [
+      "Constitution",
+      "Intelligence",
+      "Wisdom"
+    ],
+    "feat": "Dark Gift feat of your choice (see “Feats”; Gathered Whispers is recommended)",
+    "skillProficiencies": [
+      "Insight",
+      "Religion"
+    ],
+    "toolProficiency": [
+      "Choose one kind of Gaming Set"
+    ],
+    "equipment": "Choose A or B: (A) Dagger, Gaming Set (same as above), Basket, Bell, 8 Candles, Ink, Ink Pen, Paper (5 sheets), Tinderbox, Traveler’s Clothes, and 32 GP; or (B) 50 GP",
+    "description": "Through strange rituals and fateful encounters, you’ve discovered that you bear a unique connection to the spirits of the dead and damned. Your body is a conduit for such spirits, granting you prescient insight from beyond. But these spirits’ intentions aren’t always innocent, and their gifts come at a haunting cost."
+  },
+  {
+    "name": "Agent of the Ninth Quill",
+    "source": "Arcana Unleashed",
+    "abilityScores": [
+      "Dexterity",
+      "Intelligence",
+      "Charisma"
+    ],
+    "feat": "Arcane Infiltrator",
+    "skillProficiencies": [
+      "Arcana",
+      "Sleight of Hand"
+    ],
+    "toolProficiency": [
+      "Thieves’ Tools"
+    ],
+    "equipment": "Choose A or B: (A) Dagger, Light Hammer, Thieves’ Tools, Iron Spikes, Rope, Traveler’s Clothes, 17 GP; or (B) 50 GP",
+    "description": "Your sharp mind and keen burgling skills led you to fall in with the Ninth Quill, a collective of thieves, saboteurs, and spies who steal magical lore and relics from others. Through your escapades - from purloining magic items and arcane tomes to sabotaging groups of mages - you’ve developed cunning skills and magical tricks to further your spy craft."
+  },
+  {
+    "name": "Bejeweled Conclave Spy",
+    "source": "Arcana Unleashed",
+    "abilityScores": [
+      "Dexterity",
+      "Wisdom",
+      "Charisma"
+    ],
+    "feat": "Arcane Eloquence",
+    "skillProficiencies": [
+      "Deception",
+      "Perception"
+    ],
+    "toolProficiency": [
+      "Disguise Kit"
+    ],
+    "equipment": "Choose A or B: (A) Disguise Kit, Fine Clothes, Perfume, 5 GP; or (B) 50 GP",
+    "description": "Publicly, you’re a courtier, a mediator, or an entertainer. But behind that glamorous visage is a mind honed for gathering secrets. Trained by the enchanters of the Bejeweled Conclave, you know how to use your charm and wit (plus a little magic) to infiltrate organizations, uncover information, and broker deals."
+  },
+  {
+    "name": "Cosmic Dawn Experiment",
+    "source": "Arcana Unleashed",
+    "abilityScores": [
+      "Strength",
+      "Dexterity",
+      "Constitution"
+    ],
+    "feat": "Transmuted Anatomy",
+    "skillProficiencies": [
+      "Athletics",
+      "Survival"
+    ],
+    "toolProficiency": [
+      "Choose one kind of Artisan’s Tools"
+    ],
+    "equipment": "Choose A or B: (A) Artisan’s Tools (same as above), Backpack, Robe, Traveler’s Clothes, 30 GP; or (B) 50 GP",
+    "description": "Your body has been warped by the transmutation practices of the Bringers of the Cosmic Dawn. Perhaps you were inadvertently caught up in one of the organization’s experiments, or maybe you were a member of the organization and sought to improve your physical form through magical might. Whatever the case, you use your strange anatomy to your benefit."
+  },
+  {
+    "name": "Covenant of the Grave Recruit",
+    "source": "Arcana Unleashed",
+    "abilityScores": [
+      "Strength",
+      "Intelligence",
+      "Wisdom"
+    ],
+    "feat": "Arcane Undertaker",
+    "skillProficiencies": [
+      "History",
+      "Medicine"
+    ],
+    "toolProficiency": [
+      "Herbalism Kit"
+    ],
+    "equipment": "Choose A or B: (A) Dagger, Herbalism Kit, Book (anatomy), Shovel, 16 GP; or (B) 50 GP",
+    "description": "Death has always fascinated you. You’ve studied that morbid topic alongside members of the Covenant of the Grave, analyzing the macabre with scientific precision. Though these studies, you’ve amassed knowledge of medication, necromancy, and history."
+  },
+  {
+    "name": "Crucible Storm Chaser",
+    "source": "Arcana Unleashed",
+    "abilityScores": [
+      "Strength",
+      "Constitution",
+      "Intelligence"
+    ],
+    "feat": "Arcane Overload",
+    "skillProficiencies": [
+      "Athletics",
+      "Nature"
+    ],
+    "toolProficiency": [
+      "Glassblower’s Tools"
+    ],
+    "equipment": "Choose A or B: (A) Glassblower’s Tools, Backpack, Rope, Traveler’s Clothes, 15 GP; or (B) 50 GP",
+    "description": "Your daredevil tendencies and thirst for excitement led you to the Crucible Keepers, an organization dedicated to studying natural and magical catastrophes. From playing with molten glass to charging into a hurricane’s eye, you thrive when disaster is mere steps away."
+  },
+  {
+    "name": "Familiar Trainer",
+    "source": "Arcana Unleashed",
+    "abilityScores": [
+      "Constitution",
+      "Intelligence",
+      "Wisdom"
+    ],
+    "feat": "Familiar Friend",
+    "skillProficiencies": [
+      "Animal Handling",
+      "Arcana"
+    ],
+    "toolProficiency": [
+      "Choose one kind of Gaming Set"
+    ],
+    "equipment": "Choose A or B: (A) Quarterstaff, Gaming Set (same as above), Bedroll, Bell, String, Tinderbox, Traveler’s Clothes, Waterskin, 44 GP; or (B) 50 GP",
+    "description": "A magical familiar bonded with you when you were young, accompanying you throughout your adolescence. Now, you can’t imagine life without your furry - or feathery, scaly, or slimy - friend at your side. You’ve learned to work in tandem with your familiar, and when adventure presents its challenges, your familiar is quick to remind you of the small joys in life."
+  },
+  {
+    "name": "Horizon Weaver Initiate",
+    "source": "Arcana Unleashed",
+    "abilityScores": [
+      "Dexterity",
+      "Constitution",
+      "Wisdom"
+    ],
+    "feat": "Portal Jumper",
+    "skillProficiencies": [
+      "Acrobatics",
+      "Survival"
+    ],
+    "toolProficiency": [
+      "Weaver’s Tools"
+    ],
+    "equipment": "Choose A or B: (A) Shortbow, 20 Arrows, Weaver’s Tools, Map, Quiver, Rope, Traveler’s Clothes, 18 GP; or (B) 50 GP",
+    "description": "Your adolescence was marked by unquenchable wanderlust. You left home and began your travels as soon as you were able. Along the way, you encountered the adventurous conjurers of the Horizon Weavers, who taught you some of their teleportation magic to further your explorations."
+  },
+  {
+    "name": "Phantasmic Circus Trouper",
+    "source": "Arcana Unleashed",
+    "abilityScores": [
+      "Dexterity",
+      "Constitution",
+      "Charisma"
+    ],
+    "feat": "Arcane Artist",
+    "skillProficiencies": [
+      "Deception",
+      "Performance"
+    ],
+    "toolProficiency": [
+      "Disguise Kit"
+    ],
+    "equipment": "Choose A or B: (A) Disguise Kit, Gaming Set (any), Costume, Mirror, Traveler’s Clothes, 12 GP; or (B) 50 GP",
+    "description": "Whether as a performer or a circus hand, you found a home among the members of the Phantasmic Circus. As you traveled across the world bringing magic and wonder to excited audiences, you learned some illusion magic and honed your talents for performance and misdirection."
+  },
+  {
+    "name": "Seer Apprentice",
+    "source": "Arcana Unleashed",
+    "abilityScores": [
+      "Intelligence",
+      "Wisdom",
+      "Charisma"
+    ],
+    "feat": "Arcane Omens",
+    "skillProficiencies": [
+      "History",
+      "Insight"
+    ],
+    "toolProficiency": [
+      "Navigator’s Tools"
+    ],
+    "equipment": "Choose A or B: (A) Navigator’s Tools, 8 Candles, Ink, Ink Pen, Parchment (9 sheets), Pouch, Tinderbox, Traveler’s Clothes, 11 GP; or (B) 50 GP",
+    "description": "As an apprentice among the Seers of Sea and Sky, you learned to interpret minor omens from the clouds above and the fathoms below. The organization’s rich network of libraries furthered your education, and you now travel across the world, imparting advice and aid to others."
+  },
+  {
+    "name": "Ward of the Sheltering Hands",
+    "source": "Arcana Unleashed",
+    "abilityScores": [
+      "Constitution",
+      "Wisdom",
+      "Charisma"
+    ],
+    "feat": "Arcane Safeguard",
+    "skillProficiencies": [
+      "Insight",
+      "Medicine"
+    ],
+    "toolProficiency": [
+      "Cook’s Utensils"
+    ],
+    "equipment": "Choose A or B: (A) Cook’s Utensils, Blanket, Healer’s Kit, Lamp, Oil (3 flasks), Tinderbox, Traveler’s Clothes, Waterskin, 40 GP; or (B) 50 GP",
+    "description": "A turn of ill luck led you to the Sheltering Hands, an altruistic organization dedicated to defending the downtrodden. The organization helped you regain your footing and taught you some of its protective magic - in the hope that one day you too would shelter the less fortunate in their time of need."
+  },
+  {
     "name": "Carouser",
     "source": "Astarion's Book of Hungers",
     "abilityScores": [
@@ -1000,6 +1266,25 @@
     ],
     "equipment": "Choose A or B: (A) Quarterstaff, Cartographer’s Tools, Backpack, Basket, Parchment (4 sheets), Rope, Traveler’s Clothes, 29 GP; or (B) 50 GP",
     "description": "You hail from Lorwyn, a land of eternal sunshine, or you have studied the place with great intensity. You consider the majestic creature Eirdu the living embodiment of the sun, and you love embarking on whimsical adventures. You hold your loved ones close, even if only emotionally, for you’ve seen some venture into Shadowmoor or beyond and become faded versions of themselves. You’re nevertheless courageous and always long for new experiences."
+  },
+  {
+    "name": "Pact Seeker",
+    "source": "D&D Beyond Drops - May 2026",
+    "abilityScores": [
+      "Constitution",
+      "Intelligence",
+      "Charisma"
+    ],
+    "feat": "Choose one Planar Pact feat",
+    "skillProficiencies": [
+      "Arcana",
+      "Persuasion"
+    ],
+    "toolProficiency": [
+      "Calligrapher’s Supplies"
+    ],
+    "equipment": "Choose A or B: (A) Book, Calligrapher’s Supplies, Ink, Ink Pen, Parchment (10 sheets), Traveler’s Clothes, 2 GP; or (B) 50 GP.",
+    "description": "You had a purpose in mind. Perhaps you were seeking out knowledge or power. Or maybe you were in search of hidden secrets. One way or another, your journey lead you to seek out an extraplanar entity. Once you made contact, a deal was struck, and your life changed."
   },
   {
     "name": "Shadowmoor Expert",
