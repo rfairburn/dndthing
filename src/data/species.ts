@@ -1,4 +1,4 @@
-import speciesData from './species.json' assert { type: 'json' };
+import speciesData from './species.json';
 import type { Species } from '../types';
 
 interface ScrapedSpecies {

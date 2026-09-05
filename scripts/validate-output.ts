@@ -4,6 +4,71 @@ import fs from 'node:fs';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 
+interface JsonSchema {
+  type?: string;
+  [key: string]: unknown;
+}
+
+interface ItemIdentity {
+  value: unknown;
+  hasName: boolean;
+}
+
+function getProperty(value: unknown, property: string): unknown {
+  if (typeof value !== 'object' || value === null) {
+    return undefined;
+  }
+
+  return (value as Record<string, unknown>)[property];
+}
+
+function getItemIdentity(item: unknown, includeTitle: boolean): ItemIdentity {
+  const name = getProperty(item, 'name');
+  if (name) {
+    return { value: name, hasName: true };
+  }
+
+  if (includeTitle) {
+    const title = getProperty(item, 'title');
+    if (title) {
+      return { value: title, hasName: false };
+    }
+  }
+
+  return { value: 'Unknown', hasName: false };
+}
+
+function formatValue(value: unknown): string {
+  return typeof value === 'string' ? value : String(value);
+}
+
+function getConstructorName(value: unknown): string | undefined {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  const constructor = (value as { constructor?: unknown }).constructor;
+  if (constructor === null || constructor === undefined) {
+    return undefined;
+  }
+
+  const name = (constructor as { name?: unknown }).name;
+  return typeof name === 'string' ? name : undefined;
+}
+
+function getErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    const message = error.message;
+    return typeof message === 'string' ? message : String(message);
+  }
+
+  return String(error);
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -26,11 +91,12 @@ if (schemaArgIndex !== -1 && args[schemaArgIndex + 1]) {
     subclasses: 'src/data/schemas/subclass.schema.json',
     feats: 'src/data/schemas/feat.schema.json',
     backgrounds: 'src/data/schemas/background.schema.json',
-    species: 'src/data/schemas/species.schema.json'
+    species: 'src/data/schemas/species.schema.json',
+    classes: 'src/data/schemas/class.schema.json'
   };
   
   if (!typeToSchema[dataType]) {
-    console.error(`❌ Unknown type: ${dataType}. Valid types: spells, subclasses, feats, backgrounds`);
+    console.error(`❌ Unknown type: ${dataType}. Valid types: spells, subclasses, feats, backgrounds, species, classes`);
     process.exit(1);
   }
   
@@ -41,18 +107,18 @@ if (schemaArgIndex !== -1 && args[schemaArgIndex + 1]) {
   schemaPath = join(__dirname, '..', 'src', 'data', 'schemas', 'spell.schema.json');
 }
 
-const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8'));
+const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf-8')) as JsonSchema;
 
 // Initialize Ajv validator
 const ajv = new Ajv({ allErrors: true, strict: false });
 addFormats(ajv);
 
-const validate = ajv.compile<any>(schema);
+const validate = ajv.compile<unknown>(schema);
 
 /**
  * Validate data against JSON Schema (generic function)
  */
-export function validateData(data: any[]): {
+export function validateData(data: unknown[]): {
   valid: boolean;
   errors: string[];
   warnings: string[];
@@ -60,7 +126,7 @@ export function validateData(data: any[]): {
 } {
   const errors: string[] = [];
   const warnings: string[] = [];
-  const seenNames = new Set<string>();
+  const seenNames = new Set<unknown>();
   
   // For array schemas (like species), validate the entire array at once
   const isArraySchema = schema.type === 'array';
@@ -76,25 +142,27 @@ export function validateData(data: any[]): {
     }
     
     // Check for duplicate names manually
+    const duplicateNameLabel = dataType === 'classes' ? 'class' : 'species';
     for (const item of data) {
-      const name = item.name || 'Unknown';
+      const name = getItemIdentity(item, false).value;
       if (seenNames.has(name)) {
-        errors.push(`Duplicate species name: ${name}`);
+        errors.push(`Duplicate ${duplicateNameLabel} name: ${formatValue(name)}`);
       }
       seenNames.add(name);
     }
   } else {
     // Validate each item individually (for non-array schemas)
+    const itemType = getConstructorName(data[0]) || 'Item';
     for (const [index, item] of data.entries()) {
-      const name = item.name || item.title || 'Unknown';
-      const prefix = `${data[0].constructor?.name || 'Item'} #${index + 1} (${name})`;
+      const identity = getItemIdentity(item, true);
+      const prefix = `${itemType} #${index + 1} (${formatValue(identity.value)})`;
       
       // Check for duplicates
-      if (seenNames.has(name)) {
-        errors.push(`${prefix}: Duplicate ${item.name ? 'name' : 'title'}`);
+      if (seenNames.has(identity.value)) {
+        errors.push(`${prefix}: Duplicate ${identity.hasName ? 'name' : 'title'}`);
         continue;
       }
-      seenNames.add(name);
+      seenNames.add(identity.value);
       
       // Validate against schema
       const isValid = validate(item);
@@ -137,6 +205,10 @@ export async function main(): Promise<void> {
       dataType = 'feats';
     } else if (schemaName.includes('background')) {
       dataType = 'backgrounds';
+    } else if (schemaName.includes('species')) {
+      dataType = 'species';
+    } else if (schemaName.includes('class')) {
+      dataType = 'classes';
     } else {
       console.error(`❌ Unknown schema type: ${schemaName}`);
       process.exit(1);
@@ -148,23 +220,26 @@ export async function main(): Promise<void> {
     subclasses: join(__dirname, '..', 'src', 'data', 'subclasses.json'),
     feats: join(__dirname, '..', 'src', 'data', 'feats.json'),
     backgrounds: join(__dirname, '..', 'src', 'data', 'backgrounds.json'),
-    species: join(__dirname, '..', 'src', 'data', 'species.json')
+    species: join(__dirname, '..', 'src', 'data', 'species.json'),
+    classes: join(__dirname, '..', 'src', 'data', 'classes.json')
   };
   
   const dataPath = dataPathMap[dataType];
   
   console.log(`🔍 Validating ${dataType}.json against JSON Schema...\n`);
   
-  let data: any[];
+  let data: unknown[];
   try {
     const rawData = fs.readFileSync(dataPath, 'utf-8');
-    data = JSON.parse(rawData);
-    
-    if (!Array.isArray(data)) {
+    const parsedData: unknown = JSON.parse(rawData);
+
+    if (!Array.isArray(parsedData)) {
       throw new Error('Expected array format');
     }
-  } catch (error: any) {
-    console.error(`❌ Failed to parse ${dataType}.json: ${error.message}`);
+
+    data = parsedData;
+  } catch (error: unknown) {
+    console.error(`❌ Failed to parse ${dataType}.json: ${getErrorMessage(error)}`);
     process.exit(1);
   }
   

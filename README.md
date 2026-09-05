@@ -1,256 +1,125 @@
-# D&D 2024 SRD Character Generator
+# D&D 2024 Character Generator
 
-A React + TypeScript character generator for Dungeons & Dragons 2024 SRD, featuring Wizard and Artificer classes with full spell database integration.
+A React + TypeScript web app for building D&D characters, currently a **partial builder**: it implements the species → background → ability scores creation flow, plus reference and inventory views, using data scraped from dnd2024.wikidot.com. The review step can save a single-character snapshot to browser `localStorage` (save only — there is no load/restore UI and no sheet export), and it does not implement the full rules set — coverage of classes, subclasses, spells, feats, and species is limited to what the datasets contain.
 
-## Data Source of Truth
+## Sources and licensing
 
-**http://dnd2024.wikidot.com/** - All spells, subclasses, feats, and rules are verified against this official D&D 2024 SRD source.
+Two distinct references are involved; they are not interchangeable:
 
----
+- **Project reference (scraped data): [http://dnd2024.wikidot.com/](http://dnd2024.wikidot.com/)** — the project's preferred reference for verifying spells, subclasses, feats, backgrounds, species, and classes. By project policy, when the SRD PDF is incomplete or conflicts with the wikidot site, wikidot takes precedence. **Wikidot is not the official SRD**: it mixes SRD 5.2.1 content with non-SRD, legacy, and expanded content (for example, the Artificer class is sourced from an Eberron supplement). Scraped content is therefore **not** automatically SRD- or OGL-licensed: source attribution is only a pointer to where an entry came from — the underlying source's own license and terms of use govern what may be redistributed.
+- **Official rules reference: the SRD 5.2.1 PDF** ([https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf](https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf)), licensed **CC BY 4.0**. It is downloaded and parsed locally for rules lookup; parsed output lives in `rules-reference/` and is gitignored. Note the Artificer class is not in the SRD PDF at all.
 
-## Application Usage
+Spell changes must be verified against the wikidot pages (school, casting time, range, components, duration) before being committed.
 
-### Prerequisites
-
-- Node.js 18+ 
-- npm or yarn
-
-### Installation
+## Setup
 
 ```bash
-npm install
+nvm use              # select Node 24.15 per .nvmrc
+npm ci               # lockfile-based install (same as CI)
+npm run dev          # dev server at http://localhost:5173
+npm run build        # type-check + production build
+npm run preview      # preview the production build
+npm run check        # TypeScript type-check (app, scripts, and config files)
+npm test             # Vitest + React Testing Library suite
+npm run lint         # ESLint
+npm run validate     # JSON Schema validation of all six scraped datasets
+npm run test:browser # real-browser smoke test (requires a prior npm run build)
 ```
 
-### Development Mode
+**Node.js 24.15** is pinned via `.nvmrc` and `engines` in `package.json`; use `nvm use` (or any Node 24.15+ runtime) and install with `npm ci`, which installs exactly the locked dependency tree used by CI. Use `npm install` only when intentionally updating dependencies. Tests (`npm test`) and data validation (`npm run validate`) are separate concerns: the Vitest suite covers app code and scraper unit tests, while the validators check every scraped dataset against its JSON Schema — see [Validation](#validation).
 
-Run the development server with hot reload:
+## What the app does today
 
-```bash
-npm run dev
-```
+- **CharacterGenerator** — species → background → ability scores flow (standard array; background bonuses applied after base assignment), then class/subclass selection. The spells step is scaffolding only: the `CLASSES` adapter currently produces no `spellcastingInfo`, so every class renders as non-spellcasting and spell selection/progression is not wired.
+- **ReferenceLibrary** — searchable viewer over spells, feats, backgrounds, and species data.
+- **InventoryManager** — equipment management for the in-progress character.
 
-The app will be available at http://localhost:5173
+Persistence is limited to the save-only `localStorage` snapshot described above (no load/restore UI, no export); treat the builder as a partial implementation, not a complete rules engine.
 
-### Production Build
+## Data
 
-Create an optimized production build:
+Scraped datasets live in `src/data/*.json` and are committed. Small adapter modules turn the raw JSON into typed records the UI consumes:
 
-```bash
-npm run build
-```
+| File | Role |
+|------|------|
+| `src/data/spells.json` + `src/data/spells.ts` | Scraped spells; adapter builds `SPELLS_BY_CLASS` and `getSpellsForClass()` |
+| `src/data/classes.json` + `src/data/classes.ts` | Scraped class data (includes Artificer from its Eberron source); adapter builds `CLASSES` |
+| `src/data/subclasses.json` | Scraped subclass dataset (descriptions, sources); subclass lists per class are declared in `CharacterGenerator.tsx` |
+| `src/data/backgrounds.json` + `src/data/backgrounds.ts` | Scraped backgrounds; adapter builds `BACKGROUNDS` |
+| `src/data/species.json` + `src/data/species.ts` | Scraped species; adapter builds `SPECIES` |
+| `src/data/feats.json` | Scraped feats; imported directly by `ReferenceLibrary`, which builds its feats view from this file |
+| `src/data/schemas/` | JSON Schemas used by the validation script |
+| `src/types/index.ts` | Shared TypeScript interfaces |
 
-Preview the production build:
+Dataset sizes change with every scrape, so no counts are documented here — the validators report them.
 
-```bash
-npm run preview
-```
+## Web scraper
 
-### Linting & Type Checking
+`scripts/scrape-dnd2024.ts` scrapes wikidot pages into `src/data/*.json` using Puppeteer (JavaScript disabled to avoid page-script interference) and axios.
 
-```bash
-# TypeScript type checking
-npm run check
-
-# ESLint linting
-npm run lint
-```
-
----
-
-## Web Scraper Usage
-
-The included scraper (`scripts/scrape-dnd2024.ts`) extracts D&D 2024 SRD content from wikidot.com and saves it to `src/data/`.
-
-### Installation for Scraping
-
-Additional dependencies required:
-
-```bash
-npm install puppeteer axios ajv tsx yargs@^17.7.0
-```
-
-### Basic Usage
-
-**Scrape all content types:**
 ```bash
 npx tsx scripts/scrape-dnd2024.ts --types all
-```
-
-**Scrape specific types (comma-separated):**
-```bash
-# Spells only
-npx tsx scripts/scrape-dnd2024.ts --types spells
-
-# Multiple types
 npx tsx scripts/scrape-dnd2024.ts --types "spells,subclasses"
-
-# Feats and backgrounds
-npx tsx scripts/scrape-dnd2024.ts --types feats,backgrounds
+npx tsx scripts/scrape-dnd2024.ts --types spells --items "fireball,magic-missile" --continue-on-error
 ```
 
-**Scrape specific items (comma-separated names):**
-```bash
-# Specific spells
-npx tsx scripts/scrape-dnd2024.ts --types spells --items "fireball,magic-missile"
+| Option | Alias | Default | Description |
+|--------|-------|---------|-------------|
+| `--types` | `-t` | `all` | Comma-separated: spells, subclasses, feats, backgrounds, species, classes, or `all` (see note below) |
+| `--items` | `-i` | (empty) | Specific item names to scrape (comma-separated) |
+| `--max-items` | `-m` | null | Limit to first N items (testing) |
+| `--continue-on-error` | `-c` | false | Keep going after item errors |
+| `--delay` | `-d` | 200 | Delay between requests (ms); raise if rate-limited |
+| `--retries` | `-r` | 3 | Retries per item with exponential backoff |
 
-# Single item with limit
-npx tsx scripts/scrape-dnd2024.ts --types backgrounds --items acolyte --max-items 1
-```
+**Caution:** every scrape writes complete datasets to the fixed filenames in `src/data/`. A targeted scrape (e.g. `--items fireball,magic-missile`) **overwrites** the full dataset with only the targeted items unless the file is restored or extended afterwards. Cached HTML in `cache/` can help debug parsing issues.
 
-### CLI Options
+The browser instance is reused across items within a run for performance.
 
-| Option | Alias | Type | Default | Description |
-|--------|-------|------|---------|-------------|
-| `--types` | `-t` | string | "all" | Content types to scrape (comma-separated: spells, subclasses, feats, backgrounds, all) |
-| `--items` | `-i` | string | "" | Specific item names to scrape (comma-separated) |
-| `--max-items` | `-m` | number | null | Limit scrape to first N items (for testing) |
-| `--continue-on-error` | `-c` | boolean | false | Continue scraping after errors instead of stopping |
-| `--delay` | `-d` | number | 200 | Delay between requests in milliseconds |
-| `--retries` | `-r` | number | 3 | Max retry attempts per item with exponential backoff |
+**Note:** `--types all` (the default, also used by `npm run scrape:all`) currently scrapes only **spells, subclasses, feats, and backgrounds**. Species and classes are implemented but must be requested explicitly by name, e.g. `--types species,classes` — don't assume `all` covers all six types.
 
-### Examples
+## Validation
 
-**Test scrape with single item:**
-```bash
-npx tsx scripts/scrape-dnd2024.ts --types spells --items acid-splash --max-items 1
-```
-
-**Full background scrape with error recovery:**
-```bash
-npx tsx scripts/scrape-dnd2024.ts --types backgrounds --continue-on-error
-```
-
-**Scrape specific subclasses:**
-```bash
-npx tsx scripts/scrape-dnd2024.ts --types subclasses --items "order-of-scribes,bladeschool"
-```
-
-### Output Files
-
-Scraper writes to fixed filenames in `src/data/`:
-
-- `spells.json` - All spells with attributes (level, school, components, etc.)
-- `subclasses.json` - Subclass data with descriptions and sources
-- `feats.json` - Feat data with benefits and prerequisites
-- `backgrounds.json` - Background data with ability scores, feats, proficiencies
-- `species.json` - Species data with traits, sizes, speed (21 entries)
-
-### Validation
-
-Validate scraped output against JSON Schema (auto-detects schema based on type):
+Each scraped type is validated against its JSON Schema with Ajv:
 
 ```bash
-# Validate all types
-npm run validate:spells      # 411 spells
-npm run validate:subclasses  # 61 subclasses
-npm run validate:feats       # 30 feats
-npm run validate:backgrounds # 56 backgrounds
-npm run validate:species     # 21 species
-
-# Or use --type flag directly with the script
-npx tsx scripts/validate-output.ts --type spells
-npx tsx scripts/validate-output.ts --type subclasses
-npx tsx scripts/validate-output.ts --type feats
-npx tsx scripts/validate-output.ts --type backgrounds
-npx tsx scripts/validate-output.ts --type species
+npm run validate:spells
+npm run validate:subclasses
+npm run validate:feats
+npm run validate:backgrounds
+npm run validate:species
+npm run validate:classes
 ```
 
-All 5 scraped data types have JSON Schema validators for complete coverage.
+Run the validators for any dataset you modify; all must pass before committing scraped-data changes. `npm run validate` runs all six (including `classes.json`) in one go; there is no dataset validation inside `npm test`.
 
----
+## Debug scraping tool
 
-## Project Structure
+`npm run test:scrape` runs `scripts/test-scrape.ts`, a **debug CLI** for a single spell page. It fetches the page once (saving a copy to `cache/wikidot/spells/` for offline debugging), runs it through the exact extraction logic used by the production scraper (`parseSpellHtml`), prints the extracted record, and exits nonzero on failure. Pass a spell slug as the argument (default `cure-wounds`); `--help` prints usage without fetching anything. It is not a test suite — automated tests live in the Vitest suite run by `npm test`.
 
-```
-dnd-character-generator/
-├── scripts/
-│   ├── scrape-dnd2024.ts      # Main scraper (spells, subclasses, feats, backgrounds)
-│   ├── cache-manager.ts       # HTML caching utilities
-│   ├── validate-output.ts     # JSON Schema validation script
-│   └── test-scrape.ts         # Debug tool for individual items
-├── src/
-│   ├── data/
-│   │   ├── schemas/           # JSON Schema files for validation (5 total)
-│   │   ├── spells.json        # 411 official D&D 2024 SRD spells
-│   │   ├── spells.ts          # Transformer: creates SPELLS_BY_CLASS mapping
-│   │   ├── subclasses.json    # 61 subclasses scraped from wikidot.com
-│   │   ├── subclasses.ts      # Transformer: maps friendly names to data
-│   │   ├── feats.json         # Optional: 155 feats (kept for reference)
-│   │   ├── feats.ts           # Core 30 hardcoded feats with benefits/prerequisites
-│   │   ├── backgrounds.json   # 56 backgrounds with ability scores, feats, proficiencies
-│   │   ├── backgrounds.ts     # Background transformer with abilityScores/feat/proficiencies
-│   │   ├── species.json       # 21 scraped species entries with traits/sizes/speed
-│   │   └── species.ts         # Transformer: loads SPECIES record from scraped data
-│   ├── types/
-│   │   └── index.ts           # TypeScript interfaces and type definitions
-│   ├── components/
-│   │   ├── CharacterGenerator.tsx  # Main character creation wizard
-│   │   ├── ReferenceLibrary.tsx    # Searchable reference viewer
-│   │   └── InventoryManager.tsx    # Equipment management
-│   └── App.tsx                # Navigation between views
-├── package.json               # Dependencies and scripts
-├── tsconfig.json              # TypeScript configuration
-└── vite.config.ts             # Vite build configuration
-```
+## SRD PDF rules lookup
 
----
-
-## Rules Reference
-
-For official D&D 2024 SRD rules context, use the included PDF parser tools:
-
-**Source**: https://media.dndbeyond.com/compendium-images/srd/5.2/SRD_CC_v5.2.1.pdf
-
-### Quick Search for Rules
 ```bash
-# First, parse the PDF (run once)
-npm run parse:srd-pdf
-
-# Then search for specific rules
-npm run query:srd <search term>
-
-# Examples:
-npm run query:srd "spell slots"
-npm run query:srd "background bonuses"  
-npm run query:srd "species traits"
-npm run query:srd "wizard spellbook"
+npm run parse:srd-pdf            # once; downloads & parses the PDF into rules-reference/ (gitignored)
+npm run query:srd "spell slots"  # search parsed sections
 ```
 
-### When to Reference the SRD PDF
-- **Character creation flow**: Verify species → background → ability scores order
-- **Spellcasting rules**: Confirm cantrip/spellbook/prepared spell mechanics
-- **Background stat bonuses**: Check +3 distribution rules (+2/+1 or +1/+1/+1)
-- **Equipment/proficiencies**: Validate what backgrounds grant
+Use the parsed SRD text to cross-check how scraped data fits together (creation flow order, spellcasting mechanics, background bonuses). Where the PDF is incomplete or conflicts with wikidot, project policy is that wikidot wins — but remember wikidot content may fall outside the SRD.
 
-**Note**: The parsed output is in `rules-reference/` which is gitignored (not committed for licensing reasons). Re-run `npm run parse:srd-pdf` as needed.
+## Browser smoke test
 
----
+`npm run test:browser` (`scripts/browser-smoke.ts`) is a deterministic, offline smoke test that loads the real app in Chromium against both a dev server and the production preview, and asserts the Character Generator renders and navigation to the Reference Library works on desktop (1280×900) and 375px mobile without horizontal overflow. Any page error, `console.error`, missing element, or external request fails the run.
+
+- **Build prerequisite:** run `npm run build` first so `dist/` exists for preview mode.
+- **Browser install:** Chromium ships with Puppeteer; if launch fails, install it with `npx puppeteer browsers install chrome` or point `PUPPETEER_EXECUTABLE_PATH` at an existing Chrome/Chromium.
+- **Sandbox:** Chromium launches sandboxed by default. Set `PUPPETEER_NO_SANDBOX=1` only on constrained hosts (CI containers, or systems where AppArmor blocks unprivileged user namespaces) — not as a local default.
 
 ## Troubleshooting
 
-### Rate Limiting
-
-If you encounter rate limiting from wikidot.com:
-- Increase delay: `--delay 500` or higher
-- Use continue-on-error mode to recover partial data
-
-### JavaScript Errors
-
-The scraper disables JavaScript by default to prevent interference. If a page requires JS, this may cause parsing issues.
-
-### Browser Issues
-
-If Puppeteer fails to launch:
-```bash
-# Install Chromium dependencies (Linux)
-npx puppeteer browsers install chrome
-
-# Or use existing browser
-export PUPPETEER_EXECUTABLE_PATH=/path/to/chrome
-```
-
----
+- **Rate limiting** — increase `--delay` (e.g. 500+) and use `--continue-on-error`.
+- **Puppeteer launch failures** — install the browser (`npx puppeteer browsers install chrome`) or point `PUPPETEER_EXECUTABLE_PATH` at an existing Chrome/Chromium; on constrained hosts, see [Browser smoke test](#browser-smoke-test).
+- **Parser breakage** — if wikidot markup changed, check cached HTML in `cache/` and update selectors.
 
 ## License
 
-This project uses D&D 2024 SRD content which is licensed under the Open Game License (OGL). See http://dnd2024.wikidot.com/ for official terms.
+Project source code is the authors' own. Data in `src/data/` is scraped from third-party sources: each entry records its source, but attribution alone does not grant any license — the underlying source's own license and terms of use govern redistribution, and they vary. The official SRD 5.2.1 text itself is CC BY 4.0. No blanket OGL or SRD-coverage claim applies to the scraped datasets.

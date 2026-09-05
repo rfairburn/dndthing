@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import CharacterGenerator from './components/CharacterGenerator';
 import ReferenceLibrary from './components/ReferenceLibrary';
-import './App.css';
 
 function App() {
   const [view, setView] = useState<'generator' | 'reference'>('generator');

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import type { ClassType, Feat } from '../types';
-import { SPELLS_BY_CLASS } from '../data/spells';
+import type { ClassType, Feat, SpellWithClasses } from '../types';
+import { SPELLS_BY_CLASS, getSpellsForClass } from '../data/spells';
 import featsData from '../data/feats.json';
 import { BACKGROUNDS } from '../data/backgrounds';
 import { SPECIES } from '../data/species';
@@ -64,8 +64,11 @@ const CLASS_LABELS: Record<string, string> = {
 
 const ALL_CLASSES = ['all', 'artificer', 'barbarian', 'bard', 'cleric', 'druid', 'fighter', 'monk', 'paladin', 'ranger', 'rogue', 'sorcerer', 'warlock', 'wizard'] as const;
 
+const REFERENCE_TABS = ['spells', 'feats', 'backgrounds', 'species'] as const;
+type ReferenceTab = (typeof REFERENCE_TABS)[number];
+
 export default function ReferenceLibrary() {
-  const [activeTab, setActiveTab] = useState<'spells' | 'feats' | 'backgrounds' | 'species'>('spells');
+  const [activeTab, setActiveTab] = useState<ReferenceTab>('spells');
   const [searchQuery, setSearchQuery] = useState('');
   const [spellLevelFilter, setSpellLevelFilter] = useState<number | null>(null);
   const [selectedClass, setSelectedClass] = useState<ClassType | 'all'>('all');
@@ -74,23 +77,23 @@ export default function ReferenceLibrary() {
 
   const filteredSpells = (selectedClass === 'all' 
     ? allSpells 
-    : allSpells.filter(spell => spell.classes.includes(selectedClass))
+    : getSpellsForClass(selectedClass)
   ).filter(spell => 
       spell.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       spell.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      spell.classes.some((c: string) => c.toLowerCase().includes(searchQuery.toLowerCase()))
+      spell.classes.some((c) => c.toLowerCase().includes(searchQuery.toLowerCase()))
     );
 
   // Remove duplicates by name
   const uniqueSpells = Array.from(new Map(filteredSpells.map(spell => [spell.name, spell])).values());
 
   // Group by level for display
-  const groupedByLevel = uniqueSpells.reduce((acc, spell) => {
+  const groupedByLevel = uniqueSpells.reduce<Record<string, SpellWithClasses[]>>((acc, spell) => {
     const levelKey = spell.level === 0 ? 'cantrip' : `level${spell.level}`;
     if (!acc[levelKey]) acc[levelKey] = [];
     acc[levelKey].push(spell);
     return acc;
-  }, {} as Record<string, any[]>);
+  }, {});
 
   // Apply level filter to grouped data
   const filteredGroupedLevel = spellLevelFilter !== null 
@@ -105,19 +108,19 @@ export default function ReferenceLibrary() {
   };
 
   // Check if there are any spells to display after filtering
-  const hasSpellsToDisplay = Object.values(filteredGroupedLevel).some(spells => spells && spells.length > 0);
+  const hasSpellsToDisplay = Object.values(filteredGroupedLevel).some(spells => spells.length > 0);
 
-  const filteredFeats = Object.entries(FEATS).filter(([_, feat]) => 
+  const filteredFeats = Object.entries(FEATS).filter(([, feat]) =>
     feat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     feat.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredBackgrounds = Object.entries(BACKGROUNDS).filter(([_, bg]) => 
+  const filteredBackgrounds = Object.entries(BACKGROUNDS).filter(([, bg]) =>
     bg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     bg.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredSpecies = Object.entries(SPECIES).filter(([_, sp]) => 
+  const filteredSpecies = Object.entries(SPECIES).filter(([, sp]) =>
     sp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     sp.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     sp.traits?.some(t => t.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -126,11 +129,11 @@ export default function ReferenceLibrary() {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Tabs */}
-      <div className="flex gap-4 mb-8 border-b border-gray-700 pb-4">
-        {['spells', 'feats', 'backgrounds', 'species'].map((tab) => (
+      <div className="flex flex-wrap gap-4 mb-8 border-b border-gray-700 pb-4">
+        {REFERENCE_TABS.map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab as any)}
+            onClick={() => setActiveTab(tab)}
             className={`px-6 py-3 rounded-lg font-semibold transition-all capitalize ${
               activeTab === tab
                 ? 'bg-purple-600 text-white'
@@ -158,7 +161,7 @@ export default function ReferenceLibrary() {
               {ALL_CLASSES.map((cls) => (
                 <button
                   key={cls}
-                  onClick={() => setSelectedClass(cls as any)}
+                  onClick={() => setSelectedClass(cls)}
                   className={`px-4 py-2 rounded-lg font-semibold transition-all capitalize ${
                     selectedClass === cls
                       ? 'bg-purple-600 text-white'
@@ -170,7 +173,7 @@ export default function ReferenceLibrary() {
               ))}
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 key="all"
                 onClick={() => setSpellLevelFilter(null)}
@@ -210,8 +213,8 @@ export default function ReferenceLibrary() {
                   {getLevelDisplayName(level)}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {(spells as any[]).map((spell) => (
-                    <div key={spell.name} className="bg-gray-700 rounded-lg p-4 hover:bg-gray-650 transition-all">
+                  {spells.map((spell) => (
+                    <div key={spell.name} className="bg-gray-700 rounded-lg p-4 hover:bg-gray-600 transition-all">
                       <h4 className="text-lg font-bold mb-2">{spell.name}</h4>
                       <div className="flex flex-wrap gap-2 mb-3">
                         <span className="px-2 py-1 bg-purple-700 rounded text-xs capitalize">{spell.school}</span>
@@ -219,19 +222,19 @@ export default function ReferenceLibrary() {
                         <span className="px-2 py-1 bg-green-700 rounded text-xs">Range: {spell.range}</span>
                       </div>
                       <div className="flex flex-wrap gap-1 mb-3">
-                        {(spell.classes as string[]).map((cls) => (
+                        {spell.classes.map((cls) => (
                           <span key={cls} className="px-2 py-1 bg-orange-700 rounded text-xs capitalize">
                             {CLASS_LABELS[cls] || cls}
                           </span>
                         ))}
                       </div>
-                      {(spell as any).components && (
+                      {spell.components && (
                         <div className="mb-3">
                           <div className="text-xs text-gray-400 mb-1">Components:</div>
                           <div className="flex gap-2 text-xs">
-                            {((spell as any).components as any)?.verbal && <span>V</span>}
-                            {((spell as any).components as any)?.somatic && <span>S</span>}
-                            {((spell as any).components as any)?.material && <span>M</span>}
+                            {spell.components.verbal && <span>V</span>}
+                            {spell.components.somatic && <span>S</span>}
+                            {spell.components.material && <span>M</span>}
                           </div>
                         </div>
                       )}
@@ -244,14 +247,14 @@ export default function ReferenceLibrary() {
           </>
         )}
 
-        {activeTab === 'spells' && !hasSpellsToDisplay && uniqueSpells.length > 0 && (
+        {activeTab === 'spells' && !hasSpellsToDisplay && (
           <p className="text-center text-gray-400 py-12">No spells found matching your criteria.</p>
         )}
 
         {activeTab === 'feats' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredFeats.map(([key, feat]) => (
-              <div key={key} className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-all">
+              <div key={key} className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-all">
                 <h3 className="text-xl font-bold mb-2">{feat.name}</h3>
                 {feat.source && (
                   <p className="text-purple-400 text-xs mb-3">Source: {feat.source}</p>
@@ -286,7 +289,7 @@ export default function ReferenceLibrary() {
         {activeTab === 'backgrounds' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredBackgrounds.map(([key, bg]) => (
-              <div key={key} className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-all">
+              <div key={key} className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-all">
                 <h3 className="text-xl font-bold mb-2">{bg.name}</h3>
                 {bg.source && (
                   <p className="text-purple-400 text-xs mb-2">Source: {bg.source}</p>
@@ -354,10 +357,6 @@ export default function ReferenceLibrary() {
           </div>
         )}
 
-        {activeTab === 'spells' && uniqueSpells.length === 0 && (
-          <p className="text-center text-gray-400 py-12">No spells found matching your criteria.</p>
-        )}
-
         {activeTab === 'feats' && filteredFeats.length === 0 && (
           <p className="text-center text-gray-400 py-12">No feats found matching your search.</p>
         )}
@@ -369,7 +368,7 @@ export default function ReferenceLibrary() {
         {activeTab === 'species' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredSpecies.map(([key, sp]) => (
-              <div key={key} className="bg-gray-800 rounded-lg p-6 hover:bg-gray-750 transition-all">
+              <div key={key} className="bg-gray-800 rounded-lg p-6 hover:bg-gray-700 transition-all">
                 <h3 className="text-xl font-bold mb-2">{sp.name}</h3>
                 {sp.source && (
                   <p className="text-purple-400 text-xs mb-2">Source: {sp.source}</p>

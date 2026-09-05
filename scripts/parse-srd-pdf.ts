@@ -31,7 +31,7 @@ async function parsePDF(): Promise<void> {
   // Store as single document with metadata for easier searching
   const parsedData = {
     source: PDF_URL,
-    pages: data.numbPages || 'unknown',
+    pages: data.numpages || 'unknown',
     content: text
   };
   
@@ -40,7 +40,7 @@ async function parsePDF(): Promise<void> {
   // Also save raw text for grep-style searches
   fs.writeFileSync(path.join(OUTPUT_DIR, 'srd-raw.txt'), text);
   
-  console.log(`✅ Parsed ${data.numbPages || '?'} pages (${text.length.toLocaleString()} characters)`);
+  console.log(`✅ Parsed ${data.numpages || '?'} pages (${text.length.toLocaleString()} characters)`);
   console.log(`📁 Output saved to: ${OUTPUT_DIR}/`);
   console.log('⚠️  Note: This directory is in .gitignore and will not be committed');
 }

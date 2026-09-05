@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import type { Character, Species, Background, Subclass, ClassType } from '../types';
 import { SPECIES } from '../data/species';
 import { BACKGROUNDS } from '../data/backgrounds';
@@ -79,6 +79,7 @@ const SUBCLASS_NAMES: Record<Subclass, string> = {
 };
 
 type Step = 'name' | 'species' | 'background' | 'ability_scores' | 'class' | 'subclass' | 'spells' | 'inventory' | 'review';
+const STEP_SEQUENCE: Step[] = ['name', 'species', 'background', 'ability_scores', 'class', 'subclass', 'spells', 'inventory', 'review'];
 
 const standardArray = [15, 14, 13, 12, 10, 8];
 const abilities = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as const;
@@ -214,9 +215,11 @@ export default function CharacterGenerator() {
     });
   };
 
-  useEffect(() => {
-    setCharacter(prev => ({ ...prev, abilityScores: getAbilityScoresFromSlots() }));
-  }, [slots]);
+  const baseAbilityScores = getAbilityScoresFromSlots();
+  const finalAbilityScores = abilities.reduce((scores, ability) => {
+    scores[ability] = (baseAbilityScores[ability] ?? 0) + backgroundBonuses[ability];
+    return scores;
+  }, {} as Record<typeof abilities[number], number>);
 
   const handleClassSelect = (classKey: ClassType) => {
     const classData = CLASSES[classKey];
@@ -226,29 +229,24 @@ export default function CharacterGenerator() {
     const allSpellsForClass = getSpellsForClass(classKey);
     
     // Initialize wizard: 3 known cantrips (separate from spellbook) + 6 level 1 spells in spellbook (per SRD 2024)
+    let initialCantrips: string[] = [];
     let initialSpellbook: string[] = [];
     if (isWizard) {
       // Cantrips are "known" separately, not in spellbook
       const allCantrips = allSpellsForClass.filter(s => s.level === 0);
-      const level1Spells = allSpellsForClass.filter(s => s.level === 1).slice(0, 6).map(s => s.name);
-      
-      // Start with first 3 cantrips as "known" (separate from spellbook)
-      setCharacter(prev => ({
-        ...prev,
-        cantripsKnown: allCantrips.slice(0, 3).map(s => s.name),
-        wizardSpellbook: level1Spells
-      }));
-      
-      initialSpellbook = level1Spells;
+      initialCantrips = allCantrips.slice(0, 3).map(s => s.name);
+      initialSpellbook = allSpellsForClass.filter(s => s.level === 1).slice(0, 6).map(s => s.name);
     }
 
     setCharacter(prev => ({
       ...prev,
       classData: { class: classKey },
+      knownSpells: [],
+      cantripsKnown: initialCantrips,
       wizardSpellbook: initialSpellbook,
       hitDice: { total: prev.level, value: `d${classData.hitDie}` },
-      armorProficiencies: classData.armorProficiencies as any[],
-      weaponProficiencies: classData.weaponProficiencies as any[]
+      armorProficiencies: classData.armorProficiencies,
+      weaponProficiencies: classData.weaponProficiencies
     }));
   };
 
@@ -272,18 +270,33 @@ export default function CharacterGenerator() {
       charisma: 0
     });
     
-    setCharacter(prev => ({
-      ...prev,
-      background: backgroundKey,
-      skillProficiencies: [
-        ...prev.skillProficiencies,
-        ...backgroundData.skillProficiencies.map(skill => ({ skill, proficient: true }))
-      ],
-      featuresAndClasses: [
-        ...prev.featuresAndClasses,
-        { name: backgroundData.feature.name, description: backgroundData.feature.description, source: "background" as const }
-      ]
-    }));
+    setCharacter(prev => {
+      const previousBackgroundSkills = new Set(BACKGROUNDS[prev.background].skillProficiencies);
+      const retainedSkillProficiencies = prev.skillProficiencies.filter(
+        proficiency => !previousBackgroundSkills.has(proficiency.skill)
+      );
+
+      // Only append the background feature when it has real content; scraped
+      // adapter data may carry an empty placeholder feature.
+      const hasRealBackgroundFeature = Boolean(
+        backgroundData.feature.name || backgroundData.feature.description
+      );
+
+      return {
+        ...prev,
+        background: backgroundKey,
+        skillProficiencies: [
+          ...retainedSkillProficiencies,
+          ...backgroundData.skillProficiencies.map(skill => ({ skill, proficient: true }))
+        ],
+        featuresAndClasses: [
+          ...prev.featuresAndClasses.filter(feature => feature.source !== "background"),
+          ...(hasRealBackgroundFeature
+            ? [{ name: backgroundData.feature.name, description: backgroundData.feature.description, source: "background" as const }]
+            : [])
+        ]
+      };
+    });
   };
 
   const incrementBackgroundBonus = (ability: typeof abilities[number]) => {
@@ -390,18 +403,16 @@ const handleLevelChange = (level: number) => {
   };
 
   const nextStep = () => {
-    const steps: Step[] = ['name', 'species', 'background', 'ability_scores', 'class', 'subclass', 'spells', 'inventory', 'review'];
-    const currentIndex = steps.indexOf(step);
-    if (currentIndex < steps.length - 1) {
-      setStep(steps[currentIndex + 1]);
+    const currentIndex = STEP_SEQUENCE.indexOf(step);
+    if (currentIndex < STEP_SEQUENCE.length - 1) {
+      setStep(STEP_SEQUENCE[currentIndex + 1]);
     }
   };
 
   const prevStep = () => {
-    const steps: Step[] = ['name', 'species', 'background', 'ability_scores', 'class', 'subclass', 'spells', 'inventory', 'review'];
-    const currentIndex = steps.indexOf(step);
+    const currentIndex = STEP_SEQUENCE.indexOf(step);
     if (currentIndex > 0) {
-      setStep(steps[currentIndex - 1]);
+      setStep(STEP_SEQUENCE[currentIndex - 1]);
     }
   };
 
@@ -623,7 +634,7 @@ const renderAbilityScoresStep = () => {
         {slots.map((slot, index) => {
           const baseValue = slot.value || 0;
           const bonusValue = backgroundBonuses[slot.ability] || 0;
-          const totalValue = baseValue + bonusValue;
+          const totalValue = finalAbilityScores[slot.ability];
           
           return (
             <div key={slot.ability} className="p-6 bg-gray-800 rounded-lg border-2 border-purple-600">
@@ -694,7 +705,7 @@ const renderAbilityScoresStep = () => {
             const slot = slots.find(s => s.ability === ability);
             const baseValue = slot?.value || 0;
             const bonusValue = backgroundBonuses[ability] || 0;
-            const totalValue = baseValue + bonusValue;
+            const totalValue = finalAbilityScores[ability];
             
             return (
               <div key={ability} className="p-3 bg-gray-800 rounded text-center">
@@ -888,20 +899,20 @@ const getPreparedSpellLimit = () => {
       if (spellcastingInfo.spellsKnown) {
         return spellcastingInfo.spellsKnown[Math.min(character.level - 1, 19)] || 0;
       }
-      if (spellcastingInfo.spellsPrepared && character.abilityScores.intelligence !== undefined) {
-        const abilityMod = calculateAbilityModifier(character.abilityScores.intelligence);
+      if (spellcastingInfo.spellsPrepared && finalAbilityScores.intelligence !== undefined) {
+        const abilityMod = calculateAbilityModifier(finalAbilityScores.intelligence);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
-      if (spellcastingInfo.spellsPrepared && character.abilityScores.wisdom !== undefined) {
-        const abilityMod = calculateAbilityModifier(character.abilityScores.wisdom);
+      if (spellcastingInfo.spellsPrepared && finalAbilityScores.wisdom !== undefined) {
+        const abilityMod = calculateAbilityModifier(finalAbilityScores.wisdom);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
-      if (spellcastingInfo.spellsPrepared && character.abilityScores.charisma !== undefined) {
-        const abilityMod = calculateAbilityModifier(character.abilityScores.charisma);
+      if (spellcastingInfo.spellsPrepared && finalAbilityScores.charisma !== undefined) {
+        const abilityMod = calculateAbilityModifier(finalAbilityScores.charisma);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
-      if (spellcastingInfo.spellsPrepared && character.abilityScores.strength !== undefined) {
-        const abilityMod = calculateAbilityModifier(character.abilityScores.strength);
+      if (spellcastingInfo.spellsPrepared && finalAbilityScores.strength !== undefined) {
+        const abilityMod = calculateAbilityModifier(finalAbilityScores.strength);
         return spellcastingInfo.spellsPrepared(abilityMod, character.level);
       }
       return 0;
@@ -1254,11 +1265,11 @@ const getPreparedSpellLimit = () => {
 
     const getPreparedSpellLimit = () => {
         if (isWizard && spellcastingInfo?.spellsPrepared) {
-          const abilityMod = calculateAbilityModifier(character.abilityScores.intelligence);
+          const abilityMod = calculateAbilityModifier(finalAbilityScores.intelligence);
           return spellcastingInfo.spellsPrepared(abilityMod, character.level);
         }
-        if (spellcastingInfo?.spellsPrepared && character.abilityScores.charisma !== undefined) {
-          const abilityMod = calculateAbilityModifier(character.abilityScores.charisma);
+        if (spellcastingInfo?.spellsPrepared && finalAbilityScores.charisma !== undefined) {
+          const abilityMod = calculateAbilityModifier(finalAbilityScores.charisma);
           return spellcastingInfo.spellsPrepared(abilityMod, character.level);
         }
         if (!spellcastingInfo?.spellsKnown) return 0;
@@ -1287,19 +1298,16 @@ const getPreparedSpellLimit = () => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-<div className="p-3 bg-gray-700 rounded text-center">
-              <div className="text-sm text-gray-400">{character.species ? SPECIES[character.species].name : 'Not selected'}</div>
-            </div>
+          <div className="p-3 bg-gray-700 rounded text-center">
+            <div className="text-sm text-gray-400">{character.species ? SPECIES[character.species].name : 'Not selected'}</div>
+          </div>
           <div className="p-3 bg-gray-700 rounded text-center">
             <div className="text-sm text-gray-400 capitalize">{character.classData.class.replace('_', ' ')}</div>
           </div>
-<div className="p-3 bg-gray-700 rounded text-center">
-              <div className="text-sm text-gray-400">{character.species ? SPECIES[character.species].name : 'Not selected'}</div>
-            </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
-          {Object.entries(character.abilityScores).map(([stat, score]) => (
+          {Object.entries(finalAbilityScores).map(([stat, score]) => (
             <div key={stat} className="p-4 bg-gray-700 rounded text-center">
               <div className="text-sm capitalize text-gray-400">{stat}</div>
               <div className="text-3xl font-bold">{score}</div>
@@ -1421,7 +1429,7 @@ const getPreparedSpellLimit = () => {
 
       <button
         onClick={() => {
-          const saved = JSON.stringify(character);
+          const saved = JSON.stringify({ ...character, abilityScores: finalAbilityScores });
           localStorage.setItem('dnd_character', saved);
           alert('Character saved!');
         }}
@@ -1433,25 +1441,23 @@ const getPreparedSpellLimit = () => {
   );
 };
 
-  const stepNames: Step[] = ['name', 'species', 'background', 'ability_scores', 'class', 'subclass', 'spells', 'inventory', 'review'];
-
   return (
     <div className="max-w-6xl mx-auto">
       {/* Progress Bar */}
       <div className="mb-8">
-        <div className="flex justify-between mb-2">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 mb-2">
           {['Name', 'Species', 'Background', 'Abilities', 'Class', 'Subclass', 'Spells', 'Inventory', 'Review'].map((label, idx) => {
-            const currentStepIndex = stepNames.indexOf(step);
+            const currentStepIndex = STEP_SEQUENCE.indexOf(step);
             const clickedStepIndex = idx;
             const isCompleted = clickedStepIndex <= currentStepIndex;
             
             return (
               <button
                 key={label}
-                onClick={() => isCompleted && setStep(stepNames[idx])}
+                onClick={() => isCompleted && setStep(STEP_SEQUENCE[idx])}
                 disabled={!isCompleted}
                 className={`text-sm cursor-pointer transition-all ${
-                  step === stepNames[idx] 
+                  step === STEP_SEQUENCE[idx]
                     ? 'text-purple-400 font-bold' 
                     : isCompleted 
                       ? 'text-gray-300 hover:text-purple-400' 
@@ -1466,7 +1472,7 @@ const getPreparedSpellLimit = () => {
         <div className="h-2 bg-gray-700 rounded-full overflow-hidden">
           <div 
             className="h-full bg-purple-600 transition-all"
-            style={{ width: `${(stepNames.indexOf(step) + 1) * 11.11}%` }}
+            style={{ width: `${(STEP_SEQUENCE.indexOf(step) + 1) * 11.11}%` }}
           />
         </div>
       </div>
@@ -1479,7 +1485,7 @@ const getPreparedSpellLimit = () => {
       {step === 'subclass' && renderSubclassStep()}
       {step === 'spells' && renderSpellsStep()}
       {step === 'background' && renderBackgroundStep()}
-      {step === 'inventory' && <InventoryManager character={character} setCharacter={setCharacter} />}
+      {step === 'inventory' && <InventoryManager character={{ ...character, abilityScores: finalAbilityScores }} setCharacter={setCharacter} />}
       {step === 'review' && renderReviewStep()}
 
       {/* Navigation Buttons */}

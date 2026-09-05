@@ -46,19 +46,28 @@ const GEAR = [
   { name: "Waterskin", weight: 5, cost: 2 }
 ];
 
+// Prefer crypto.randomUUID for collision-free ids; in environments without a
+// secure context (where randomUUID is unavailable), fall back to a timestamp
+// plus a module-local counter so ids stay distinct within the same millisecond.
+let fallbackIdCounter = 0;
+const generateItemId = (): string =>
+  typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : `${Date.now().toString()}-${fallbackIdCounter++}`;
+
 export default function InventoryManager({ character, setCharacter }: { character: Character; setCharacter: React.Dispatch<React.SetStateAction<Character>> }) {
   const [activeTab, setActiveTab] = useState<'inventory' | 'weapons' | 'armor'>('inventory');
   const [newItemName, setNewItemName] = useState('');
 
   const addItemToInventory = (item: Item) => {
-    setCharacter((prev: any) => ({
+    setCharacter((prev) => ({
       ...prev,
       inventory: [...prev.inventory, item]
     }));
   };
 
   const updateItemQuantity = (itemId: string, delta: number) => {
-    setCharacter((prev: any) => ({
+    setCharacter((prev) => ({
       ...prev,
       inventory: prev.inventory.map((item: Item) => 
         item.id === itemId ? { ...item, quantity: Math.max(1, item.quantity + delta) } : item
@@ -67,14 +76,14 @@ export default function InventoryManager({ character, setCharacter }: { characte
   };
 
   const removeItemFromInventory = (itemId: string) => {
-    setCharacter((prev: any) => ({
+    setCharacter((prev) => ({
       ...prev,
       inventory: prev.inventory.filter((item: Item) => item.id !== itemId)
     }));
   };
 
   const calculateTotalWeight = () => {
-    return character.inventory.reduce((total: number, item: Item) => total + (item.weight || 0) * item.quantity, 0);
+    return character.inventory.reduce((total, item) => total + (item.weight || 0) * item.quantity, 0);
   };
 
   const calculateCarryCapacity = () => {
@@ -87,7 +96,7 @@ export default function InventoryManager({ character, setCharacter }: { characte
         <p className="text-gray-400 text-center py-8">No items in inventory</p>
       ) : (
         character.inventory.map((item) => (
-          <div key={item.id} className="flex justify-between items-center p-3 bg-gray-750 rounded-lg">
+          <div key={item.id} className="flex justify-between items-center p-3 bg-gray-700 rounded-lg">
             <div className="flex-1">
               <div className="font-semibold">{item.name}</div>
               {item.weight && <div className="text-sm text-gray-400">{item.weight} lbs</div>}
@@ -120,7 +129,7 @@ export default function InventoryManager({ character, setCharacter }: { characte
   );
 
   const renderAddItemForm = () => (
-    <div className="mb-6 p-4 bg-gray-750 rounded-lg">
+    <div className="mb-6 p-4 bg-gray-700 rounded-lg">
       <h4 className="font-semibold mb-3">Add Item</h4>
       <input
         type="text"
@@ -134,7 +143,7 @@ export default function InventoryManager({ character, setCharacter }: { characte
           onClick={() => {
             if (newItemName.trim()) {
               addItemToInventory({
-                id: Date.now().toString(),
+                id: generateItemId(),
                 name: newItemName,
                 quantity: 1,
                 weight: 0,
@@ -157,7 +166,7 @@ export default function InventoryManager({ character, setCharacter }: { characte
         <button
           key={weapon.name}
           onClick={() => addItemToInventory({
-            id: Date.now().toString() + weapon.name,
+            id: generateItemId(),
             name: weapon.name,
             quantity: 1,
             weight: weapon.weight,
@@ -165,7 +174,7 @@ export default function InventoryManager({ character, setCharacter }: { characte
             category: "weapon" as const,
             properties: [`${weapon.damage} ${weapon.type}`]
           })}
-          className="p-3 bg-gray-750 hover:bg-gray-700 rounded-lg text-left transition-all"
+          className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-all"
         >
           <div className="font-semibold">{weapon.name}</div>
           <div className="text-sm text-gray-400">{weapon.damage} {weapon.type} • {weapon.weight} lbs</div>
@@ -180,7 +189,7 @@ export default function InventoryManager({ character, setCharacter }: { characte
         <button
           key={armor.name}
           onClick={() => addItemToInventory({
-            id: Date.now().toString() + armor.name,
+            id: generateItemId(),
             name: armor.name,
             quantity: 1,
             weight: armor.weight,
@@ -188,7 +197,7 @@ export default function InventoryManager({ character, setCharacter }: { characte
             category: "armor" as const,
             properties: [`AC ${armor.ac}`]
           })}
-          className="p-3 bg-gray-750 hover:bg-gray-700 rounded-lg text-left transition-all"
+          className="p-3 bg-gray-700 hover:bg-gray-600 rounded-lg text-left transition-all"
         >
           <div className="font-semibold">{armor.name}</div>
           <div className="text-sm text-gray-400">AC {armor.ac} • {armor.weight} lbs</div>
@@ -289,7 +298,7 @@ export default function InventoryManager({ character, setCharacter }: { characte
                     <span className="font-bold">{character.silverPieces}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-copper-500">Copper (cp)</span>
+                    <span className="text-amber-600">Copper (cp)</span>
                     <span className="font-bold">{character.copperPieces}</span>
                   </div>
                 </div>
@@ -303,14 +312,14 @@ export default function InventoryManager({ character, setCharacter }: { characte
                       <button
                         key={item.name}
                         onClick={() => addItemToInventory({
-                          id: Date.now().toString() + item.name,
+                          id: generateItemId(),
                           name: item.name,
                           quantity: 1,
                           weight: item.weight,
                           costInGoldPieces: item.cost,
                           category: "adventure_gear" as const
                         })}
-                        className="px-3 py-2 bg-gray-700 hover:bg-gray-650 rounded text-sm transition-all"
+                        className="px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm transition-all"
                       >
                         {item.name}
                       </button>

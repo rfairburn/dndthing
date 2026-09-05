@@ -1,4 +1,4 @@
-import backgroundsData from './backgrounds.json' assert { type: 'json' };
+import backgroundsData from './backgrounds.json';
 import type { Background, BackgroundData } from '../types';
 
 interface ScrapedBackground {

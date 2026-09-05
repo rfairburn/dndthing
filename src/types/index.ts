@@ -1,8 +1,3 @@
-export interface AbilityScore {
-  name: string;
-  modifier: number;
-}
-
 export interface Character {
   id: string;
   name: string;
@@ -321,11 +316,6 @@ export type Action =
   | "tune_in_to_the_ether" 
   | "wait";
 
-export interface ActionData {
-  name: Action;
-  description: string;
-}
-
 export interface Item {
   id: string;
   name: string;
@@ -370,8 +360,6 @@ export interface Components {
   materialCost?: number;
 }
 
-export type SpellcastingAbility = "strength" | "dexterity" | "constitution" | "intelligence" | "wisdom" | "charisma";
-
 export interface Feat {
   name: string;
   description: string;
@@ -383,10 +371,4 @@ export interface Feat {
 export interface Prerequisite {
   abilityScore: string;
   minimum: number;
-}
-
-export interface SubclassData {
-  name: string;
-  description: string;
-  source: string;
 }

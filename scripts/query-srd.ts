@@ -25,7 +25,11 @@ if (!fs.existsSync(dataPath)) {
   process.exit(1);
 }
 
-const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+interface RulesReferenceData {
+  content: string;
+}
+
+const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8')) as RulesReferenceData;
 let text = data.content;
 
 // Normalize line breaks within words (PDF artifact cleanup)
@@ -90,7 +94,7 @@ function performSearch() {
     return true;
   }
 
-  let hasAllKeywordsTogether = topResults.some(result => 
+  const hasAllKeywordsTogether = topResults.some(result =>
     checkIfAllTermsTogether(result.text.toLowerCase())
   );
   
@@ -100,7 +104,7 @@ function performSearch() {
     
     const reScored = contextBlocks.map(block => ({
       text: block,
-      score: calculateScoreWithFallback(block, regexPattern, searchTerms, query)
+      score: calculateScoreWithFallback(block, regexPattern, searchTerms)
     })).filter(item => item.score > 0).sort((a, b) => b.score - a.score);
     
     if (reScored.length === 0) {
@@ -137,22 +141,18 @@ function displayResults(resultsToDisplay: { text: string; score: number }[]) {
   console.log('\n💡 For full context, check: rules-reference/srd-raw.txt');
 }
 
-function calculateScoreWithFallback(text: string, regexPattern: RegExp | null, searchTerms: string[], originalQuery: string): number {
+function calculateScoreWithFallback(text: string, regexPattern: RegExp | null, searchTerms: string[]): number {
   // Start with base score
   let score = calculateScore(text, regexPattern, searchTerms);
   
   const lowerText = text.toLowerCase();
   
   // Detect if query is looking for a class feature (e.g., "Bard Spellcasting")
-  const hasClassName = searchTerms.some(term => 
+  const targetClass = searchTerms.find(term =>
     ['wizard', 'cleric', 'druid', 'bard', 'sorcerer', 'warlock', 'paladin', 'ranger'].includes(term)
   );
   
-  if (hasClassName) {
-    // Detect which class we're looking for
-    const targetClass = searchTerms.find(term => 
-      ['wizard', 'cleric', 'druid', 'bard', 'sorcerer', 'warlock', 'paladin', 'ranger'].includes(term)
-    );
+  if (targetClass) {
     
     // Direct pattern search: look for "Level X: Spellcasting" or similar feature patterns with the target class
     const spellcastingFeaturePattern = new RegExp(`level \\d+: (spellcasting|cantrips|prepared spells)`, 'i');
@@ -312,10 +312,6 @@ function calculateScoreWithFallback(text: string, regexPattern: RegExp | null, s
   
   return Math.min(score, 2500); // Higher cap for fallback scoring
 }
-
-// Export functions for use in performSearch
-const displayResultsFunc = displayResults;
-const calculateScoreWithFallbackFunc = calculateScoreWithFallback;
 
 function calculateScore(text: string, regexPattern: RegExp | null, searchTerms: string[]): number {
   let score = 0;
